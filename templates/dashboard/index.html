@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+{% block meta_description %}Scientific Dashboard — Engineering, Fluid Dynamics, Materials Science, Chemistry, and Physics simulations.{% endblock %}
+{% block nav_home %}sidebar__link--active{% endblock %}
+{% block breadcrumb %}🏠 Dashboard{% endblock %}
+
+{% block content %}
+<!-- ============================================================
+     Dashboard Home — Module Overview
+     ============================================================ -->
+<div class="dashboard-home">
+
+  <!-- Hero Section -->
+  <section class="dashboard-hero">
+    <div class="dashboard-hero__content">
+      <h1 class="dashboard-hero__title">
+        Scientific<br>
+        <span class="gradient-text">Dashboard</span>
+      </h1>
+      <p class="dashboard-hero__subtitle">
+        Professional simulation engine for Engineering, Chemistry, Fluid Dynamics,
+        Materials Science, and Physics. Powered by Python's scientific ecosystem
+        and visualised with Plotly &amp; Three.js.
+      </p>
+      <div class="dashboard-hero__stack">
+        <span class="tech-chip">NumPy</span>
+        <span class="tech-chip">SciPy</span>
+        <span class="tech-chip">SymPy</span>
+        <span class="tech-chip">fluids</span>
+        <span class="tech-chip">pymatgen</span>
+        <span class="tech-chip">ASE</span>
+        <span class="tech-chip">SfePy</span>
+        <span class="tech-chip">mpmath</span>
+        <span class="tech-chip">pint</span>
+        <span class="tech-chip">tribology</span>
+      </div>
+    </div>
+    <div class="dashboard-hero__visual" aria-hidden="true">
+      <div class="orbit-ring orbit-ring--1">
+        <div class="orbit-dot"></div>
+      </div>
+      <div class="orbit-ring orbit-ring--2">
+        <div class="orbit-dot"></div>
+      </div>
+      <div class="orbit-core">⚛</div>
+    </div>
+  </section>
+
+  <!-- Module Cards Grid -->
+  <section class="modules-grid" aria-labelledby="modules-heading">
+    <h2 id="modules-heading" class="section-title">Scientific Modules</h2>
+
+    <div class="module-cards">
+
+      <!-- Fluid Mechanics -->
+      <a href="{% url 'fluids:pipe-flow-page' %}" class="module-card module-card--fluid" id="module-card-fluids">
+        <div class="module-card__icon" aria-hidden="true">💧</div>
+        <div class="module-card__body">
+          <h3 class="module-card__title">Fluid Mechanics</h3>
+          <p class="module-card__desc">
+            Pipe flow analysis, Reynolds number, Darcy-Weisbach pressure drop,
+            Colebrook-White friction factor, velocity profiles.
+          </p>
+          <div class="module-card__libs">
+            <span>fluids</span><span>NumPy</span><span>pint</span>
+          </div>
+        </div>
+        <div class="module-card__arrow" aria-hidden="true">→</div>
+        <div class="module-card__status module-card__status--active">Active</div>
+      </a>
+
+      <!-- Materials & FEA -->
+      <a href="{% url 'materials:materials-index' %}" class="module-card module-card--materials" id="module-card-materials">
+        <div class="module-card__icon" aria-hidden="true">🔩</div>
+        <div class="module-card__body">
+          <h3 class="module-card__title">Materials &amp; FEA</h3>
+          <p class="module-card__desc">
+            Finite Element Analysis, beam deflection, stress-strain curves,
+            truss analysis, and material deformation simulation.
+          </p>
+          <div class="module-card__libs">
+            <span>SfePy</span><span>NumPy</span><span>SciPy</span>
+          </div>
+        </div>
+        <div class="module-card__arrow" aria-hidden="true">→</div>
+        <div class="module-card__status module-card__status--active">Active</div>
+      </a>
+
+      <!-- Chemistry & Atoms -->
+      <a href="{% url 'chemistry:chemistry-index' %}" class="module-card module-card--chemistry" id="module-card-chemistry">
+        <div class="module-card__icon" aria-hidden="true">🧪</div>
+        <div class="module-card__body">
+          <h3 class="module-card__title">Chemistry &amp; Atoms</h3>
+          <p class="module-card__desc">
+            Periodic table data, atomic properties, crystal structures,
+            molecular geometry, and interatomic bonding simulation.
+          </p>
+          <div class="module-card__libs">
+            <span>pymatgen</span><span>ASE</span><span>mendeleev</span>
+          </div>
+        </div>
+        <div class="module-card__arrow" aria-hidden="true">→</div>
+        <div class="module-card__status module-card__status--active">Active</div>
+      </a>
+
+      <!-- Physics -->
+      <a href="{% url 'physics:physics-index' %}" class="module-card module-card--physics" id="module-card-physics">
+        <div class="module-card__icon" aria-hidden="true">⚡</div>
+        <div class="module-card__body">
+          <h3 class="module-card__title">Physics</h3>
+          <p class="module-card__desc">
+            Classical mechanics, thermodynamics, electromagnetism,
+            projectile motion, orbital mechanics, and wave optics.
+          </p>
+          <div class="module-card__libs">
+            <span>SymPy</span><span>SciPy</span><span>mpmath</span>
+          </div>
+        </div>
+        <div class="module-card__arrow" aria-hidden="true">→</div>
+        <div class="module-card__status module-card__status--active">Active</div>
+      </a>
+
+      <!-- Tribology -->
+      <a href="{% url 'tribology:tribology-index' %}" class="module-card module-card--tribology" id="module-card-tribology">
+        <div class="module-card__icon" aria-hidden="true">⚙️</div>
+        <div class="module-card__body">
+          <h3 class="module-card__title">Tribology &amp; Gears</h3>
+          <p class="module-card__desc">
+            Gears sizing geometry, pitch line linear velocity, contact load, Dowson-Higginson
+            elastohydrodynamic lubrication (EHL) oil film thickness and Lambda index.
+          </p>
+          <div class="module-card__libs">
+            <span>NumPy</span><span>SciPy</span>
+          </div>
+        </div>
+        <div class="module-card__arrow" aria-hidden="true">→</div>
+        <div class="module-card__status module-card__status--active">Active</div>
+      </a>
+
+    </div>
+  </section>
+
+</div>
+
+<style>
+  /* Dashboard Home Page Redesign — Space-Scientific Premium Styling */
+  .dashboard-home { max-width: 1350px; margin: 0 auto; }
+
+  /* Hero Section */
+  .dashboard-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+    padding: 30px 0 60px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .dashboard-hero__content {
+    position: relative;
+    z-index: 5;
+  }
+
+  .dashboard-hero__title {
+    font-size: clamp(2.5rem, 5vw, 3.8rem);
+    font-weight: 900;
+    line-height: 1.05;
+    margin-bottom: 20px;
+    letter-spacing: -0.03em;
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #a78bfa 0%, #60a5fa 50%, #34d399 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 15px rgba(167, 139, 250, 0.2));
+  }
+
+  .dashboard-hero__subtitle {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    max-width: 500px;
+    line-height: 1.7;
+    margin-bottom: 28px;
+    opacity: 0.9;
+  }
+
+  .dashboard-hero__stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tech-chip {
+    padding: 5px 12px;
+    background: rgba(139, 92, 246, 0.08);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #c4b5fd;
+    font-family: var(--font-mono);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: all var(--transition-fast);
+  }
+  .tech-chip:hover {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+    box-shadow: var(--glow-violet);
+  }
+
+  /* Orbit Visualizer */
+  .dashboard-hero__visual {
+    position: relative;
+    width: 280px;
+    height: 280px;
+    flex-shrink: 0;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
+  }
+
+  .orbit-core {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 56px;
+    filter: drop-shadow(0 0 20px rgba(139,92,246,0.7));
+    z-index: 2;
+    animation: pulse-core 4s ease-in-out infinite;
+  }
+  @keyframes pulse-core {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); filter: drop-shadow(0 0 15px rgba(139,92,246,0.5)); }
+    50% { transform: translate(-50%, -50%) scale(1.08); filter: drop-shadow(0 0 25px rgba(139,92,246,0.8)); }
+  }
+
+  .orbit-ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    border-radius: 50%;
+    border: 1px solid rgba(139, 92, 246, 0.15);
+    transform: translate(-50%, -50%);
+  }
+
+  .orbit-ring--1 {
+    width: 170px; height: 170px;
+    animation: orbit 6s linear infinite;
+  }
+  .orbit-ring--2 {
+    width: 250px; height: 250px;
+    animation: orbit 10s linear infinite reverse;
+    border-color: rgba(96, 165, 250, 0.15);
+  }
+
+  .orbit-dot {
+    position: absolute;
+    top: -5px; left: 50%;
+    transform: translateX(-50%);
+    width: 10px; height: 10px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--accent-primary);
+  }
+  .orbit-ring--2 .orbit-dot {
+    background: var(--accent-secondary);
+    box-shadow: 0 0 12px var(--accent-secondary);
+  }
+
+  @keyframes orbit { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+  /* Section Title */
+  .section-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 28px;
+    letter-spacing: -0.01em;
+  }
+
+  /* Module Cards Grid */
+  .module-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+  }
+
+  .module-card {
+    position: relative;
+    background: var(--bg-surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    text-decoration: none;
+    color: inherit;
+    transition: all var(--transition-med);
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow: var(--glow-panel);
+  }
+
+  .module-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+  }
+
+  .module-card--fluid::before   { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
+  .module-card--materials::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+  .module-card--chemistry::before { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
+  .module-card--physics::before   { background: linear-gradient(90deg, #10b981, #3b82f6); }
+  .module-card--tribology::before { background: linear-gradient(90deg, #3b82f6, #10b981); }
+
+  .module-card:hover {
+    border-color: rgba(139, 92, 246, 0.3);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.45), rgba(139, 92, 246, 0.08) 0 4px 30px;
+  }
+  .module-card:hover::before { opacity: 1; }
+
+  .module-card__icon { font-size: 2.2rem; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2)); }
+
+  .module-card__title {
+    font-size: 1.15rem;
+    font-weight: 750;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+
+  .module-card__desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    opacity: 0.85;
+  }
+
+  .module-card__libs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .module-card__libs span {
+    padding: 3px 9px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+  }
+
+  .module-card__arrow {
+    position: absolute;
+    right: 24px;
+    top: 24px;
+    font-size: 1.25rem;
+    color: var(--text-muted);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+  }
+  .module-card:hover .module-card__arrow {
+    transform: translateX(5px);
+    color: var(--accent-primary);
+  }
+
+  .module-card__status {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .module-card__status--active {
+    background: rgba(16,185,129,0.12);
+    color: #6ee7b7;
+    border: 1px solid rgba(16,185,129,0.25);
+  }
+
+  @media (max-width: 640px) {
+    .dashboard-hero { flex-direction: column; text-align: center; }
+    .dashboard-hero__visual { display: none; }
+    .dashboard-hero__subtitle { margin-left: auto; margin-right: auto; }
+    .dashboard-hero__stack { justify-content: center; }
+  }
+</style>
+{% endblock %}

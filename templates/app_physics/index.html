@@ -1,0 +1,702 @@
+{% extends "base.html" %}
+
+{% block title %}Physics — Projectile Motion{% endblock %}
+{% block meta_description %}Projectile motion simulation with quadratic air drag, Plotly.js 2D trajectory comparison, and interactive Three.js 3D flight path animation.{% endblock %}
+{% block nav_physics %}sidebar__link--active{% endblock %}
+{% block breadcrumb %}⚡ Physics / 3D Projectile Trajectory{% endblock %}
+
+{% block content %}
+<div class="physics-dashboard" id="physics-dashboard">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-header__title">Projectile Motion with Air Resistance</h1>
+      <p class="page-header__desc">
+        Quadratic drag force ($F_d = -\frac{1}{2} C_d \rho A v^2$) · Runge-Kutta numerical integration ·
+        Vacuum trajectory comparison · Plotly.js plotting · Three.js 3D flight path
+      </p>
+    </div>
+    <div class="page-header__badges">
+      <span class="stat-badge stat-badge--blue" id="badge-range">
+        <span>Range (Drag)</span><span id="range-value">—</span>
+      </span>
+      <span class="stat-badge stat-badge--green" id="badge-height">
+        <span>Height (Drag)</span><span id="height-value">—</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Main Layout: 3-column grid -->
+  <div class="dashboard-layout">
+
+    <!-- ============ LEFT PANEL: Input Form ============ -->
+    <aside class="dashboard-layout__left" id="input-panel" role="complementary" aria-label="Calculation inputs">
+
+      <!-- Preset Projectiles -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card__header">
+          <div>
+            <div class="card__title">Projectile Preset</div>
+            <div class="card__subtitle">Load properties of standard objects</div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <select class="form-input" id="projectile-preset" aria-label="Projectile preset selector">
+            <option value="baseball">Baseball (m = 145g, d = 74mm, Cd = 0.30)</option>
+            <option value="golfball">Golf Ball (m = 45g, d = 43mm, Cd = 0.25)</option>
+            <option value="bullet">Bullet (m = 8g, d = 9mm, Cd = 0.29)</option>
+            <option value="cannonball">Cannonball (m = 10kg, d = 150mm, Cd = 0.47)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Input Form -->
+      <form class="card" id="projectile-form" novalidate aria-label="Projectile parameters">
+        <div class="card__header">
+          <div>
+            <div class="card__title">Launch Parameters</div>
+            <div class="card__subtitle">Configure physical properties</div>
+          </div>
+        </div>
+
+        <!-- LAUNCH CONDITIONS -->
+        <div class="form-section-label">🚀 Launch Conditions</div>
+
+        <div class="form-group">
+          <label class="form-label" for="velocity_m_s">
+            Initial Velocity <span class="unit-tag">m/s</span>
+          </label>
+          <input class="form-input" type="number" id="velocity_m_s" name="velocity_m_s"
+                 value="45.0" min="0.1" max="1000.0" step="1.0">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="angle_deg">
+            Launch Angle <span class="unit-tag">°</span>
+          </label>
+          <input class="form-input" type="number" id="angle_deg" name="angle_deg"
+                 value="45.0" min="0.1" max="89.9" step="0.5">
+        </div>
+
+        <!-- OBJECT PROPERTIES -->
+        <div class="form-section-label">⚽ Object Characteristics</div>
+
+        <div class="form-group">
+          <label class="form-label" for="mass_kg">
+            Mass <span class="unit-tag">kg</span>
+          </label>
+          <input class="form-input" type="number" id="mass_kg" name="mass_kg"
+                 value="0.145" min="0.001" max="10000.0" step="0.001">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="diameter_m">
+            Diameter <span class="unit-tag">m</span>
+          </label>
+          <input class="form-input" type="number" id="diameter_m" name="diameter_m"
+                 value="0.074" min="0.001" max="10.0" step="0.001">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="drag_coefficient">
+            Drag Coefficient (Cd) <span class="unit-tag">dim</span>
+          </label>
+          <input class="form-input" type="number" id="drag_coefficient" name="drag_coefficient"
+                 value="0.30" min="0.0" max="5.0" step="0.01">
+        </div>
+
+        <!-- Submit -->
+        <button class="btn btn--primary btn--full" type="submit" id="calculate-btn">
+          <span>▶</span>
+          <span id="btn-text">Solve Trajectory</span>
+        </button>
+      </form>
+
+    </aside>
+
+    <!-- ============ CENTRE PANEL: Three.js + Plotly ============ -->
+    <section class="dashboard-layout__center" aria-label="3D flight simulation and profiles">
+
+      <!-- Three.js Trajectory Visualizer -->
+      <div class="card card--glow">
+        <div class="card__header">
+          <div>
+            <div class="card__title" style="display:flex; align-items:center; gap:8px;">
+              <span>🌀 3D Flight Path Workbench</span>
+              <span class="regime-tag" id="workbench-status" style="font-size:0.65rem; padding:2px 6px;">Idle</span>
+            </div>
+            <div class="card__subtitle">3D animated projectile simulation (Three.js)</div>
+          </div>
+          <button class="btn btn--outline" id="toggle-animation" style="padding:6px 12px; font-size:0.75rem;">
+            ⏸ Pause
+          </button>
+        </div>
+        
+        <canvas id="three-canvas" aria-label="3D animated projectile flight simulation"
+                style="width:100%; height:420px; border-radius:8px; display:block; background:#050b18;">
+        </canvas>
+        
+        <div class="velocity-legend" aria-label="Component scales">
+          <span style="color:#8b5cf6">● Ideal path</span>
+          <span style="color:#ef4444">● Drag path</span>
+        </div>
+
+        <!-- 3D Camera Controls -->
+        <div class="camera-controls" style="margin-top:16px; padding:12px; background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md);">
+          <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span>🎥 Camera Viewpoint (XYZ)</span>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.72rem; color:var(--text-muted);">
+              <input type="checkbox" id="auto-orbit" style="cursor:pointer; accent-color:var(--accent-primary);"> Auto-Orbit
+            </label>
+          </div>
+          
+          <!-- View Presets -->
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:10px;">
+            <button type="button" class="btn btn--outline" id="btn-view-iso" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Iso</button>
+            <button type="button" class="btn btn--outline" id="btn-view-side" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Side (Z)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-top" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Top (Y)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-inlet" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Inlet (X)</button>
+          </div>
+
+          <!-- XYZ Sliders -->
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#ef4444; font-weight:bold;">X</span>
+              <input type="range" id="cam-slider-x" min="-6" max="6" step="0.05" value="0" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#ef4444;">
+              <span id="cam-val-x" style="width:28px; text-align:right;">0.00</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#10b981; font-weight:bold;">Y</span>
+              <input type="range" id="cam-slider-y" min="-6" max="6" step="0.05" value="1.5" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#10b981;">
+              <span id="cam-val-y" style="width:28px; text-align:right;">1.50</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#3b82f6; font-weight:bold;">Z</span>
+              <input type="range" id="cam-slider-z" min="-6" max="6" step="0.05" value="4" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#3b82f6;">
+              <span id="cam-val-z" style="width:28px; text-align:right;">4.00</span>
+            </div>
+          </div>
+        </div>
+
+        <p style="font-size:0.7rem; color:var(--text-muted); margin-top:8px; text-align:center;">
+          * Trajectory scaled down to fit standard viewport bounds.
+        </p>
+      </div>
+
+      <!-- Plotly Chart — Trajectory Curve -->
+      <div class="card">
+        <div class="card__header">
+          <div>
+            <div class="card__title">📉 Trajectory Profiles Comparison</div>
+            <div class="card__subtitle">Comparison of vacuum trajectory vs. real flight path with air drag</div>
+          </div>
+        </div>
+        <div id="plotly-chart" style="height:340px; border-radius:8px; overflow:hidden;">
+          <div class="chart-placeholder" id="chart-placeholder">
+            <span>📉</span>
+            <p>Solve equations to render chart</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============ RIGHT PANEL: Calculations & Table ============ -->
+    <aside class="dashboard-layout__right" id="right-panel" role="complementary" aria-label="Calculation results and stats">
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="kpi-card kpi-card--range" id="kpi-range">
+          <div class="kpi-label">Max Range</div>
+          <div class="kpi-value" id="kpi-range-val">—</div>
+          <div class="kpi-unit">meters (drag)</div>
+        </div>
+        <div class="kpi-card kpi-card--height" id="kpi-height">
+          <div class="kpi-label">Peak Altitude</div>
+          <div class="kpi-value" id="kpi-height-val">—</div>
+          <div class="kpi-unit">meters (drag)</div>
+        </div>
+        <div class="kpi-card kpi-card--time kpi-card--highlight" id="kpi-time" style="grid-column: span 2;">
+          <div class="kpi-label">Time of Flight</div>
+          <div class="kpi-value" id="kpi-time-val">—</div>
+          <div class="kpi-unit">seconds (drag)</div>
+        </div>
+      </div>
+
+      <!-- Numerical details table -->
+      <div class="card" id="results-table-card">
+        <div class="card__title" style="margin-bottom:12px;">📋 Flight Dynamics Table</div>
+        <table class="results-table" id="results-table" aria-label="Numerical results">
+          <tbody>
+            <tr><td>Vacuum Range</td><td id="tbl-range-vac">—</td></tr>
+            <tr><td>Drag Range</td><td id="tbl-range-drag">—</td></tr>
+            <tr><td>Vacuum Peak Height</td><td id="tbl-height-vac">—</td></tr>
+            <tr><td>Drag Peak Height</td><td id="tbl-height-drag">—</td></tr>
+            <tr><td>Vacuum Flight Time</td><td id="tbl-time-vac">—</td></tr>
+            <tr><td>Drag Flight Time</td><td id="tbl-time-drag">—</td></tr>
+            <tr class="results-table__highlight"><td>Final Speed (Drag)</td><td id="tbl-speed-final">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </aside>
+
+  </div>
+</div>
+
+<style>
+  .physics-dashboard { max-width: 1650px; margin: 0 auto; }
+  .kpi-card--range { border-left-color: var(--accent-secondary); }
+  .kpi-card--height { border-left-color: var(--accent-info); }
+  .kpi-card--time { border-left-color: var(--accent-primary); }
+</style>
+
+{% load static %}
+<script src="{% static 'core/vendor/plotly.min.js' %}"></script>
+<script src="{% static 'core/vendor/three.min.js' %}"></script>
+<script src="{% static 'core/vendor/OrbitControls.js' %}"></script>
+
+<script>
+// -----------------------------------------------------------------
+// 1. API CLIENT
+// -----------------------------------------------------------------
+const API = {
+  baseUrl: '/api/physics',
+  csrfToken: document.querySelector('meta[name="csrf-token"]')?.content,
+
+  async post(endpoint, data) {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': this.csrfToken,
+      },
+      body: JSON.stringify(data),
+    });
+    const json = await response.json();
+    if (!response.ok) throw json;
+    return json;
+  }
+};
+
+// -----------------------------------------------------------------
+// 2. FORM & PRESET MANAGER
+// -----------------------------------------------------------------
+const FormManager = {
+  form: document.getElementById('projectile-form'),
+  presetSelect: document.getElementById('projectile-preset'),
+  calculateBtn: document.getElementById('calculate-btn'),
+
+  init() {
+    // Preset Selector
+    this.presetSelect.addEventListener('change', (e) => {
+      const presets = {
+        baseball:   { mass: 0.145, diameter: 0.074, cd: 0.30, v0: 45 },
+        golfball:   { mass: 0.045, diameter: 0.043, cd: 0.25, v0: 60 },
+        bullet:     { mass: 0.008, diameter: 0.009, cd: 0.29, v0: 340 },
+        cannonball: { mass: 10.0,  diameter: 0.150, cd: 0.47, v0: 150 }
+      };
+      const p = presets[e.target.value];
+      if (p) {
+        document.getElementById('mass_kg').value = p.mass;
+        document.getElementById('diameter_m').value = p.diameter;
+        document.getElementById('drag_coefficient').value = p.cd;
+        document.getElementById('velocity_m_s').value = p.v0;
+        showToast(`Loaded ${e.target.value.toUpperCase()} properties`, 'info', 2000);
+      }
+    });
+
+    this.form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.handleSubmit();
+    });
+
+    // Solve initially
+    this.handleSubmit();
+  },
+
+  getInputs() {
+    return {
+      velocity_m_s:     parseFloat(document.getElementById('velocity_m_s').value),
+      angle_deg:        parseFloat(document.getElementById('angle_deg').value),
+      mass_kg:          parseFloat(document.getElementById('mass_kg').value),
+      diameter_m:       parseFloat(document.getElementById('diameter_m').value),
+      drag_coefficient: parseFloat(document.getElementById('drag_coefficient').value),
+    };
+  },
+
+  async handleSubmit() {
+    const data = this.getInputs();
+    
+    this.calculateBtn.disabled = true;
+    showLoading('Integrating launch trajectory equations…');
+
+    try {
+      const response = await API.post('/projectile/calculate/', data);
+      const result = response.data;
+
+      UIUpdater.updateAll(result, data);
+      PlotlyChart.render(result);
+      ThreeTrajectory.buildTrajectory(result);
+
+      showToast('Trajectory equations solved!', 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Solving failed. Check parameter constraints.', 'error');
+    } finally {
+      this.calculateBtn.disabled = false;
+      hideLoading();
+    }
+  }
+};
+
+// -----------------------------------------------------------------
+// 3. UI UPDATER
+// -----------------------------------------------------------------
+const UIUpdater = {
+  updateAll(result, data) {
+    const s = result.stats;
+    
+    // Top badges
+    document.getElementById('range-value').textContent = s.range_drag_m.toFixed(1) + ' m';
+    document.getElementById('height-value').textContent = s.height_drag_m.toFixed(1) + ' m';
+
+    // KPIs
+    document.getElementById('kpi-range-val').textContent = s.range_drag_m.toFixed(1);
+    document.getElementById('kpi-height-val').textContent = s.height_drag_m.toFixed(1);
+    document.getElementById('kpi-time-val').textContent = s.time_drag_s.toFixed(2);
+
+    // Update workbench badge text
+    const statusTag = document.getElementById('workbench-status');
+    if (statusTag && data) {
+      statusTag.textContent = `Angle: ${data.angle_deg}° | Speed: ${data.velocity_m_s}m/s`;
+    }
+
+    // Table
+    document.getElementById('tbl-range-vac').textContent = s.range_vacuum_m.toFixed(2) + ' m';
+    document.getElementById('tbl-range-drag').textContent = s.range_drag_m.toFixed(2) + ' m';
+    document.getElementById('tbl-height-vac').textContent = s.height_vacuum_m.toFixed(2) + ' m';
+    document.getElementById('tbl-height-drag').textContent = s.height_drag_m.toFixed(2) + ' m';
+    document.getElementById('tbl-time-vac').textContent = s.time_vacuum_s.toFixed(2) + ' s';
+    document.getElementById('tbl-time-drag').textContent = s.time_drag_s.toFixed(2) + ' s';
+    document.getElementById('tbl-speed-final').textContent = s.final_velocity_drag_m_s.toFixed(2) + ' m/s';
+  }
+};
+
+// -----------------------------------------------------------------
+// 4. PLOTLY CHART
+// -----------------------------------------------------------------
+const PlotlyChart = {
+  rendered: false,
+
+  render(result) {
+    const traceIdeal = {
+      x: result.x_vacuum,
+      y: result.y_vacuum,
+      mode: 'lines',
+      name: 'Vacuum (Ideal)',
+      line: { color: '#8b5cf6', width: 2, dash: 'dash' }
+    };
+
+    const traceReal = {
+      x: result.x_drag,
+      y: result.y_drag,
+      mode: 'lines',
+      name: 'Air Drag (Real)',
+      line: { color: '#ef4444', width: 3 },
+      fill: 'tozeroy',
+      fillcolor: 'rgba(239,68,68,0.04)'
+    };
+
+    const layout = {
+      paper_bgcolor: 'transparent',
+      plot_bgcolor:  '#0d1526',
+      font: { family: 'Inter, sans-serif', color: '#94a3b8', size: 11 },
+      margin: { t: 10, r: 16, b: 48, l: 64 },
+      xaxis: {
+        gridcolor: 'rgba(255,255,255,0.05)',
+        zerolinecolor: 'rgba(255,255,255,0.15)',
+        title: { text: 'Distance x (m)', font: { size: 11, color: '#64748b' } },
+        tickfont: { family: 'JetBrains Mono, monospace', size: 10 }
+      },
+      yaxis: {
+        gridcolor: 'rgba(255,255,255,0.05)',
+        zerolinecolor: 'rgba(255,255,255,0.15)',
+        title: { text: 'Height y (m)', font: { size: 11, color: '#64748b' } },
+        tickfont: { family: 'JetBrains Mono, monospace', size: 10 }
+      }
+    };
+
+    document.getElementById('chart-placeholder')?.remove();
+
+    if (!this.rendered) {
+      Plotly.newPlot('plotly-chart', [traceIdeal, traceReal], layout, { responsive: true, displaylogo: false });
+      this.rendered = true;
+    } else {
+      Plotly.react('plotly-chart', [traceIdeal, traceReal], layout, { responsive: true, displaylogo: false });
+    }
+  }
+};
+
+// -----------------------------------------------------------------
+// 5. THREE.JS 3D TRAJECTORY VISUALIZATION
+// -----------------------------------------------------------------
+const ThreeTrajectory = {
+  scene: null,
+  camera: null,
+  renderer: null,
+  controls: null,
+  idealPathLine: null,
+  realPathLine: null,
+  projectile: null,
+  grid: null,
+
+  animating: true,
+  animStep: 0,
+  dragCoords: [],
+  scaleFactor: 1.0,
+
+  // Camera states
+  targetCameraPos: null,
+  targetLookAt: new THREE.Vector3(0, 0, 0),
+  transitioning: false,
+  autoOrbit: false,
+
+  init() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    // Scene
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x050b18);
+
+    // Camera
+    this.camera = new THREE.PerspectiveCamera(45, canvas.offsetWidth / canvas.offsetHeight, 0.1, 100);
+    this.camera.position.set(0, 1.5, 4);
+    this.camera.lookAt(0, 0, 0);
+
+    // Renderer
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    this.renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // Controls
+    if (typeof THREE.OrbitControls !== 'undefined') {
+      this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+      this.controls.enableDamping = true;
+      this.controls.dampingFactor = 0.05;
+      this.controls.minDistance = 1;
+      this.controls.maxDistance = 15;
+    }
+
+    // Lights
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    const pointLight = new THREE.PointLight(0xffffff, 0.8);
+    pointLight.position.set(5, 5, 5);
+    this.scene.add(pointLight);
+
+    // Grid Floor
+    this.grid = new THREE.GridHelper(8, 20, 0x1e3a5f, 0x111e35);
+    this.grid.position.y = -0.5;
+    this.scene.add(this.grid);
+
+    // Add Orbit Controls DOM elements
+    const orbitCheckbox = document.getElementById('auto-orbit');
+    const sliderX = document.getElementById('cam-slider-x');
+    const sliderY = document.getElementById('cam-slider-y');
+    const sliderZ = document.getElementById('cam-slider-z');
+    const valX = document.getElementById('cam-val-x');
+    const valY = document.getElementById('cam-val-y');
+    const valZ = document.getElementById('cam-val-z');
+
+    if (orbitCheckbox) {
+      orbitCheckbox.addEventListener('change', (e) => {
+        this.autoOrbit = e.target.checked;
+        if (this.autoOrbit) {
+          this.transitioning = false;
+          this.targetCameraPos = null;
+        }
+      });
+    }
+
+    const triggerPreset = (x, y, z) => {
+      this.targetCameraPos = new THREE.Vector3(x, y, z);
+      this.transitioning = true;
+      this.autoOrbit = false;
+      if (orbitCheckbox) orbitCheckbox.checked = false;
+    };
+
+    document.getElementById('btn-view-iso')?.addEventListener('click', () => triggerPreset(2.5, 1.8, 2.8));
+    document.getElementById('btn-view-side')?.addEventListener('click', () => triggerPreset(0, 0, 4));
+    document.getElementById('btn-view-top')?.addEventListener('click', () => triggerPreset(0, 4.2, 0.01));
+    document.getElementById('btn-view-inlet')?.addEventListener('click', () => triggerPreset(-3.5, 0, 0));
+
+    const handleSliderChange = () => {
+      if (this.autoOrbit) {
+        this.autoOrbit = false;
+        if (orbitCheckbox) orbitCheckbox.checked = false;
+      }
+      this.transitioning = false;
+      this.targetCameraPos = null;
+      this.camera.position.set(
+        parseFloat(sliderX.value),
+        parseFloat(sliderY.value),
+        parseFloat(sliderZ.value)
+      );
+      this.camera.lookAt(0, 0, 0);
+      if (this.controls) this.controls.target.set(0, 0, 0);
+      
+      valX.textContent = parseFloat(sliderX.value).toFixed(2);
+      valY.textContent = parseFloat(sliderY.value).toFixed(2);
+      valZ.textContent = parseFloat(sliderZ.value).toFixed(2);
+    };
+
+    [sliderX, sliderY, sliderZ].forEach(slider => {
+      slider?.addEventListener('input', handleSliderChange);
+    });
+
+    // Start animation loop
+    this.animate();
+
+    // Toggle button
+    document.getElementById('toggle-animation').addEventListener('click', (e) => {
+      this.animating = !this.animating;
+      e.target.textContent = this.animating ? '⏸ Pause' : '▶ Resume';
+      if (this.animating) this.animate();
+    });
+
+    window.addEventListener('resize', () => this.onResize());
+  },
+
+  buildTrajectory(result) {
+    // Clear old lines/objects
+    if (this.idealPathLine) this.scene.remove(this.idealPathLine);
+    if (this.realPathLine) this.scene.remove(this.realPathLine);
+    if (this.projectile) this.scene.remove(this.projectile);
+
+    const xReal = result.x_drag;
+    const yReal = result.y_drag;
+    const xIdeal = result.x_vacuum;
+    const yIdeal = result.y_vacuum;
+
+    // Determine scale to fit within viewport coordinate range [-2.0, 2.0]
+    const maxVal = Math.max(xIdeal[xIdeal.length - 1] || 1, Math.max(...yIdeal) || 1);
+    this.scaleFactor = 4.0 / maxVal;
+
+    // Create Ideal Path Line (Purple)
+    const idealPoints = [];
+    for (let i = 0; i < xIdeal.length; i++) {
+      // Map 2D (x, y) to 3D: X axis is left-to-right (centered), Y is vertical height.
+      // Let's center the start point at x = -2
+      idealPoints.push(new THREE.Vector3(xIdeal[i] * this.scaleFactor - 2, yIdeal[i] * this.scaleFactor - 0.5, 0));
+    }
+    const idealGeo = new THREE.BufferGeometry().setFromPoints(idealPoints);
+    const idealMat = new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.4 });
+    this.idealPathLine = new THREE.Line(idealGeo, idealMat);
+    this.scene.add(this.idealPathLine);
+
+    // Create Real Drag Path Line (Red)
+    const realPoints = [];
+    this.dragCoords = [];
+    for (let i = 0; i < xReal.length; i++) {
+      const vec = new THREE.Vector3(xReal[i] * this.scaleFactor - 2, yReal[i] * this.scaleFactor - 0.5, 0);
+      realPoints.push(vec);
+      this.dragCoords.push(vec);
+    }
+    const realGeo = new THREE.BufferGeometry().setFromPoints(realPoints);
+    const realMat = new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 2 });
+    this.realPathLine = new THREE.Line(realGeo, realMat);
+    this.scene.add(this.realPathLine);
+
+    // Create Projectile (Sphere)
+    const sphereGeo = new THREE.SphereGeometry(0.08, 32, 32);
+    const sphereMat = new THREE.MeshPhongMaterial({ color: 0xef4444, emissive: 0x5a1a1a, shininess: 80 });
+    this.projectile = new THREE.Mesh(sphereGeo, sphereMat);
+    this.projectile.position.copy(this.dragCoords[0] || new THREE.Vector3(-2, -0.5, 0));
+    this.scene.add(this.projectile);
+
+    this.animStep = 0;
+  },
+
+  animate() {
+    if (!this.animating) return;
+    requestAnimationFrame(() => this.animate());
+
+    // 1. Auto-orbit
+    if (this.autoOrbit) {
+      const time = Date.now() * 0.0005;
+      const radius = 4.0;
+      this.camera.position.x = radius * Math.cos(time);
+      this.camera.position.z = radius * Math.sin(time);
+      this.camera.position.y = 1.5 + 0.5 * Math.sin(time * 0.5);
+      this.camera.lookAt(0, 0, 0);
+      if (this.controls) this.controls.target.set(0, 0, 0);
+    }
+
+    // 2. Camera preset lerping
+    if (this.transitioning && this.targetCameraPos) {
+      this.camera.position.lerp(this.targetCameraPos, 0.1);
+      this.camera.lookAt(this.targetLookAt);
+      if (this.controls) this.controls.target.copy(this.targetLookAt);
+      
+      if (this.camera.position.distanceTo(this.targetCameraPos) < 0.01) {
+        this.camera.position.copy(this.targetCameraPos);
+        this.transitioning = false;
+        this.targetCameraPos = null;
+      }
+    }
+
+    if (this.controls) this.controls.update();
+
+    // 3. Coordinate Sliders Sync
+    const sliderX = document.getElementById('cam-slider-x');
+    const sliderY = document.getElementById('cam-slider-y');
+    const sliderZ = document.getElementById('cam-slider-z');
+    const valX = document.getElementById('cam-val-x');
+    const valY = document.getElementById('cam-val-y');
+    const valZ = document.getElementById('cam-val-z');
+
+    if (sliderX && sliderY && sliderZ) {
+      if (document.activeElement !== sliderX) {
+        sliderX.value = this.camera.position.x;
+        if (valX) valX.textContent = this.camera.position.x.toFixed(2);
+      }
+      if (document.activeElement !== sliderY) {
+        sliderY.value = this.camera.position.y;
+        if (valY) valY.textContent = this.camera.position.y.toFixed(2);
+      }
+      if (document.activeElement !== sliderZ) {
+        sliderZ.value = this.camera.position.z;
+        if (valZ) valZ.textContent = this.camera.position.z.toFixed(2);
+      }
+    }
+
+    // 4. Animate sphere along flight path
+    if (this.projectile && this.dragCoords.length > 0) {
+      this.projectile.position.copy(this.dragCoords[this.animStep]);
+      
+      // Increment animation step
+      this.animStep = (this.animStep + 1) % this.dragCoords.length;
+    }
+
+    this.renderer.render(this.scene, this.camera);
+  },
+
+  onResize() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || !this.renderer) return;
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h);
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  FormManager.init();
+  ThreeTrajectory.init();
+});
+</script>
+{% endblock %}

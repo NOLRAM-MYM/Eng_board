@@ -1,0 +1,13 @@
+# =============================================================================
+# Scientific Dashboard — Advanced Requirements (Python <=3.12 Recommended)
+# As of Python 3.14, these libraries do not have pre-built Windows wheels.
+# Install: pip install -r requirements-advanced.txt
+# =============================================================================
+
+# Structural / Finite Element Analysis (FEA)
+sfepy>=2024.4                       # Finite elements, structural analysis
+
+# Chemistry, Atomic & Materials Science
+pymatgen>=2024.6.10                 # Materials modelling, crystal structures
+ase>=3.23.0                         # Atomic Simulation Environment
+mendeleev>=0.17,<0.18               # Periodic table data

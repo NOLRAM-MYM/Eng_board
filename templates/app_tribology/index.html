@@ -1,0 +1,834 @@
+{% extends "base.html" %}
+
+{% block title %}Tribology &amp; Gears — EHL Lubrication{% endblock %}
+{% block meta_description %}Interactive spur gears geometry explorer and elastohydrodynamic lubrication (EHL) solver: minimum film thickness, Lambda parameter, and lubrication regime analysis.{% endblock %}
+{% block nav_tribology %}sidebar__link--active{% endblock %}
+{% block breadcrumb %}⚙️ Tribology &amp; Gears / Lubrication &amp; Sizing{% endblock %}
+
+{% block content %}
+<div class="tribology-dashboard" id="tribology-dashboard">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-header__title">Gears Geometry &amp; Tribology Solver</h1>
+      <p class="page-header__desc">
+        Spur gear dimensioning (AGMA/ISO) · Dowson-Higginson Elastohydrodynamic Lubrication (EHL) ·
+        Lubrication regime analysis · Plotly.js speed sweep · Three.js 3D interlocking gear simulation
+      </p>
+    </div>
+    <div class="page-header__badges">
+      <span class="stat-badge stat-badge--blue" id="badge-lambda">
+        <span>Lambda (Λ)</span><span id="lambda-value">—</span>
+      </span>
+      <span class="stat-badge stat-badge--green" id="badge-hmin">
+        <span>h_min</span><span id="hmin-value">—</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Main Layout: 3-column grid -->
+  <div class="dashboard-layout">
+
+    <!-- ============ LEFT PANEL: Input Form & Presets ============ -->
+    <aside class="dashboard-layout__left" id="input-panel" role="complementary" aria-label="Calculation inputs">
+
+      <!-- Preset Selection -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card__header">
+          <div>
+            <div class="card__title">Design Preset</div>
+            <div class="card__subtitle">Load gear application parameters</div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <select class="form-input" id="gear-preset" aria-label="Gear preset selector">
+            <option value="high_speed">High Speed Gearset (m=2, Z1=24, Z2=48, 3000 RPM)</option>
+            <option value="heavy_duty">Heavy Duty Gearset (m=4, Z1=18, Z2=36, 600 RPM)</option>
+            <option value="micro_device">Micro-Device Gearset (m=0.5, Z1=15, Z2=30, 12000 RPM)</option>
+            <option value="standard">Standard Industrial Gearset (m=3, Z1=20, Z2=40, 1500 RPM)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Parameters Form -->
+      <form class="card" id="tribology-form" novalidate aria-label="Gear Tribology parameters">
+        <div class="card__header">
+          <div>
+            <div class="card__title">Gear Parameters</div>
+            <div class="card__subtitle">Configure geometry and load</div>
+          </div>
+        </div>
+
+        <!-- GEOMETRY -->
+        <div class="form-section-label">📐 Gear Geometry</div>
+
+        <div class="form-group">
+          <label class="form-label" for="module_mm">
+            Module <span class="unit-tag">mm</span>
+          </label>
+          <input class="form-input" type="number" id="module_mm" name="module_mm"
+                 value="3.0" min="0.1" max="50.0" step="0.1">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="pinion_teeth">Pinion Teeth Z₁</label>
+            <input class="form-input" type="number" id="pinion_teeth" name="pinion_teeth"
+                   value="20" min="5" max="500" step="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="gear_teeth">Gear Teeth Z₂</label>
+            <input class="form-input" type="number" id="gear_teeth" name="gear_teeth"
+                   value="40" min="5" max="500" step="1">
+          </div>
+        </div>
+
+        <!-- OPERATING CONDITIONS -->
+        <div class="form-section-label">⚙️ Operating Conditions</div>
+
+        <div class="form-group">
+          <label class="form-label" for="pinion_rpm">
+            Pinion Speed <span class="unit-tag">RPM</span>
+          </label>
+          <input class="form-input" type="number" id="pinion_rpm" name="pinion_rpm"
+                 value="1500.0" min="0.0" max="20000.0" step="50.0">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="viscosity_pa_s">
+            Dynamic Viscosity (η₀) <span class="unit-tag">Pa·s</span>
+          </label>
+          <input class="form-input" type="number" id="viscosity_pa_s" name="viscosity_pa_s"
+                 value="0.04" min="0.001" max="100.0" step="0.005">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="roughness_um">
+            Surface Roughness (Rq) <span class="unit-tag">μm</span>
+          </label>
+          <input class="form-input" type="number" id="roughness_um" name="roughness_um"
+                 value="0.5" min="0.01" max="50.0" step="0.05">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="load_n">
+            Tangential Load (Ft) <span class="unit-tag">N</span>
+          </label>
+          <input class="form-input" type="number" id="load_n" name="load_n"
+                 value="2000.0" min="1.0" max="1000000.0" step="100.0">
+        </div>
+
+        <!-- Submit -->
+        <button class="btn btn--primary btn--full" type="submit" id="calculate-btn">
+          <span>▶</span>
+          <span id="btn-text">Solve Sizing &amp; EHL</span>
+        </button>
+      </form>
+
+    </aside>
+
+    <!-- ============ CENTER PANEL: 3D Animation & Plotly Chart ============ -->
+    <section class="dashboard-layout__center" aria-label="3D simulation and speed sweep">
+
+      <!-- Three.js 3D Interlocking Spur Gears -->
+      <div class="card card--glow">
+        <div class="card__header">
+          <div>
+            <div class="card__title" style="display:flex; align-items:center; gap:8px;">
+              <span>🌀 3D Gear Interlock Workbench</span>
+              <span class="regime-tag" id="workbench-status" style="font-size:0.65rem; padding:2px 6px;">Idle</span>
+            </div>
+            <div class="card__subtitle">Spur gear profiles rotating dynamically (Three.js)</div>
+          </div>
+        </div>
+        
+        <canvas id="three-canvas" aria-label="3D animated gear simulation"
+                style="width:100%; height:420px; border-radius:8px; display:block; background:#050b18;">
+        </canvas>
+        
+        <div class="velocity-legend" aria-label="Gear labels" style="justify-content:center; gap:16px;">
+          <span style="color:#60a5fa">● Pinion (Z₁)</span>
+          <span style="color:#f59e0b">● Gear (Coroa Z₂)</span>
+          <span style="color:#34d399">● EHL Oil Film</span>
+        </div>
+
+        <!-- 3D Camera Controls -->
+        <div class="camera-controls" style="margin-top:16px; padding:12px; background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md);">
+          <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span>🎥 Camera Viewpoint (XYZ)</span>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.72rem; color:var(--text-muted);">
+              <input type="checkbox" id="auto-orbit" style="cursor:pointer; accent-color:var(--accent-primary);"> Auto-Orbit
+            </label>
+          </div>
+          
+          <!-- View Presets -->
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:10px;">
+            <button type="button" class="btn btn--outline" id="btn-view-iso" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Iso</button>
+            <button type="button" class="btn btn--outline" id="btn-view-side" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Front (Z)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-top" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Top (Y)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-inlet" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Side (X)</button>
+          </div>
+
+          <!-- XYZ Sliders -->
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#ef4444; font-weight:bold;">X</span>
+              <input type="range" id="cam-slider-x" min="-6" max="6" step="0.05" value="0" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#ef4444;">
+              <span id="cam-val-x" style="width:28px; text-align:right;">0.00</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#10b981; font-weight:bold;">Y</span>
+              <input type="range" id="cam-slider-y" min="-6" max="6" step="0.05" value="0.0" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#10b981;">
+              <span id="cam-val-y" style="width:28px; text-align:right;">0.00</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#3b82f6; font-weight:bold;">Z</span>
+              <input type="range" id="cam-slider-z" min="-6" max="6" step="0.05" value="3.5" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#3b82f6;">
+              <span id="cam-val-z" style="width:28px; text-align:right;">3.50</span>
+            </div>
+          </div>
+        </div>
+        <p style="font-size:0.7rem; color:var(--text-muted); margin-top:8px; text-align:center;">
+          * Mesh sized relative to pitch diameters. Interlocks and spins in sync based on speed.
+        </p>
+      </div>
+
+      <!-- Plotly Chart — Sweep -->
+      <div class="card">
+        <div class="card__header">
+          <div>
+            <div class="card__title">📉 EHL Lubrication Zone Sweep</div>
+            <div class="card__subtitle">Lambda Parameter (Λ) vs. Operating Speed (RPM)</div>
+          </div>
+        </div>
+        <div id="plotly-chart" style="height:260px; border-radius:8px; overflow:hidden;">
+          <div class="chart-placeholder" id="chart-placeholder">
+            <span>📉</span>
+            <p>Solve gear parameters to render speed sweep</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============ RIGHT PANEL: Calculations & Table ============ -->
+    <aside class="dashboard-layout__right" id="right-panel" role="complementary" aria-label="Calculation results and stats">
+
+      <!-- KPI Cards stacked in a neat vertical grid -->
+      <div class="kpi-grid" id="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="kpi-card kpi-card--ratio" id="kpi-ratio-card">
+          <div class="kpi-label">Gear Ratio</div>
+          <div class="kpi-value" id="kpi-ratio-val">—</div>
+          <div class="kpi-unit" id="kpi-ratio-desc">—</div>
+        </div>
+        <div class="kpi-card kpi-card--velocity" id="kpi-velocity-card">
+          <div class="kpi-label">Pitch Speed</div>
+          <div class="kpi-value" id="kpi-velocity-val">—</div>
+          <div class="kpi-unit">m/s</div>
+        </div>
+        <div class="kpi-card kpi-card--lambda kpi-card--highlight" id="kpi-lambda-card" style="grid-column: span 2;">
+          <div class="kpi-label">Lubrication Regime</div>
+          <div class="kpi-value" id="kpi-regime-val" style="font-size:1.15rem; word-break:break-all;">—</div>
+          <div class="kpi-unit" id="kpi-lambda-desc">Lambda index = —</div>
+        </div>
+      </div>
+
+      <!-- Detailed Results Table -->
+      <div class="card" id="results-table-card">
+        <div class="card__title" style="margin-bottom:12px;">📋 Sizing &amp; EHL Parameters</div>
+        <table class="results-table" id="results-table" aria-label="Numerical results">
+          <tbody>
+            <tr><td>Pinion Diameter (d₁)</td><td id="tbl-d1">—</td></tr>
+            <tr><td>Gear Diameter (d₂)</td><td id="tbl-d2">—</td></tr>
+            <tr><td>Center Distance (a)</td><td id="tbl-a">—</td></tr>
+            <tr><td>Entrainment Speed (u)</td><td id="tbl-u">—</td></tr>
+            <tr><td>Contact Normal Load (F)</td><td id="tbl-f">—</td></tr>
+            <tr><td>Equivalent Radius (R')</td><td id="tbl-radius">—</td></tr>
+            <tr><td>Speed Param (U)</td><td id="tbl-u-param" style="font-size:0.75rem;">—</td></tr>
+            <tr><td>Load Param (W)</td><td id="tbl-w-param" style="font-size:0.75rem;">—</td></tr>
+            <tr><td>Film Thickness (h_min)</td><td id="tbl-hmin" style="color:#60a5fa; font-weight:700;">—</td></tr>
+            <tr class="results-table__highlight"><td>Lambda Index (Λ)</td><td id="tbl-lambda">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </aside>
+
+  </div>
+</div>
+
+<style>
+  .tribology-dashboard { max-width: 1650px; margin: 0 auto; }
+  .kpi-card--ratio { border-left-color: var(--accent-primary); }
+  .kpi-card--velocity { border-left-color: var(--accent-info); }
+  .kpi-card--lambda { border-left-color: var(--accent-secondary); }
+  .kpi-card--boundary { border-left-color: var(--accent-danger) !important; background: rgba(239, 68, 68, 0.02); }
+  .kpi-card--mixed { border-left-color: var(--accent-warning) !important; background: rgba(245, 158, 11, 0.02); }
+  .kpi-card--hydrodynamic { border-left-color: var(--accent-success) !important; background: rgba(16, 185, 129, 0.02); }
+</style>
+
+{% load static %}
+<script src="{% static 'core/vendor/plotly.min.js' %}"></script>
+<script src="{% static 'core/vendor/three.min.js' %}"></script>
+<script src="{% static 'core/vendor/OrbitControls.js' %}"></script>
+
+<script>
+// -----------------------------------------------------------------
+// 1. API CLIENT & CONFIG
+// -----------------------------------------------------------------
+const API = {
+  baseUrl: '/api/tribology',
+  csrfToken: document.querySelector('meta[name="csrf-token"]')?.content,
+
+  async post(endpoint, data) {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': this.csrfToken,
+      },
+      body: JSON.stringify(data),
+    });
+    const json = await response.json();
+    if (!response.ok) throw json;
+    return json;
+  }
+};
+
+// -----------------------------------------------------------------
+// 2. FORM & PRESET MANAGER
+// -----------------------------------------------------------------
+const FormManager = {
+  form: document.getElementById('tribology-form'),
+  presetSelect: document.getElementById('gear-preset'),
+  calculateBtn: document.getElementById('calculate-btn'),
+
+  init() {
+    // Preset Selector
+    this.presetSelect.addEventListener('change', (e) => {
+      const presets = {
+        high_speed:   { m: 2.0, z1: 24, z2: 48, rpm: 3000.0, viscosity: 0.02, roughness: 0.2, load: 1000.0 },
+        heavy_duty:   { m: 4.0, z1: 18, z2: 36, rpm: 600.0, viscosity: 0.15, roughness: 0.8, load: 8000.0 },
+        micro_device: { m: 0.5, z1: 15, z2: 30, rpm: 12000.0, viscosity: 0.005, roughness: 0.1, load: 100.0 },
+        standard:     { m: 3.0, z1: 20, z2: 40, rpm: 1500.0, viscosity: 0.04, roughness: 0.5, load: 2000.0 }
+      };
+      const p = presets[e.target.value];
+      if (p) {
+        document.getElementById('module_mm').value = p.m;
+        document.getElementById('pinion_teeth').value = p.z1;
+        document.getElementById('gear_teeth').value = p.z2;
+        document.getElementById('pinion_rpm').value = p.rpm;
+        document.getElementById('viscosity_pa_s').value = p.viscosity;
+        document.getElementById('roughness_um').value = p.roughness;
+        document.getElementById('load_n').value = p.load;
+        showToast(`Preset: Loaded ${e.target.value.replace('_', ' ').toUpperCase()} parameters`, 'info', 2000);
+      }
+    });
+
+    this.form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.handleSubmit();
+    });
+
+    // Run initial solve
+    this.handleSubmit();
+  },
+
+  getInputs() {
+    return {
+      module_mm:      parseFloat(document.getElementById('module_mm').value),
+      pinion_teeth:   parseInt(document.getElementById('pinion_teeth').value),
+      gear_teeth:     parseInt(document.getElementById('gear_teeth').value),
+      pinion_rpm:     parseFloat(document.getElementById('pinion_rpm').value),
+      viscosity_pa_s: parseFloat(document.getElementById('viscosity_pa_s').value),
+      roughness_um:   parseFloat(document.getElementById('roughness_um').value),
+      load_n:         parseFloat(document.getElementById('load_n').value)
+    };
+  },
+
+  async handleSubmit() {
+    const inputs = this.getInputs();
+    
+    this.calculateBtn.disabled = true;
+    document.getElementById('btn-text').textContent = 'Solving…';
+    showLoading('Solving spur gear geometry & Dowson-Higginson EHL equations…');
+
+    try {
+      const response = await API.post('/calculate/', inputs);
+      const result = response.data;
+      
+      UIUpdater.updateAll(inputs, result);
+      PlotlyChart.render(result, inputs.roughness_um);
+      ThreeGears.updateGears(inputs.module_mm, inputs.pinion_teeth, inputs.gear_teeth, inputs.pinion_rpm, result.ehl.lambda_parameter, result.ehl.regime_code);
+      
+      showToast('Tribology & Gear equations solved successfully!', 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Error calculating EHL properties. Check constraints.', 'error');
+    } finally {
+      this.calculateBtn.disabled = false;
+      document.getElementById('btn-text').textContent = 'Solve Sizing & EHL';
+      hideLoading();
+    }
+  }
+};
+
+// -----------------------------------------------------------------
+// 3. UI UPDATER
+// -----------------------------------------------------------------
+const UIUpdater = {
+  updateAll(inputs, result) {
+    const e = result.ehl;
+    const g = result.geometry;
+    
+    // Top badges
+    document.getElementById('lambda-value').textContent = e.lambda_parameter.toFixed(3);
+    document.getElementById('hmin-value').textContent = e.h_min_um.toFixed(4) + ' μm';
+
+    // Status Workbench badge
+    const statusTag = document.getElementById('workbench-status');
+    if (statusTag) {
+      statusTag.textContent = `${e.regime} (Λ=${e.lambda_parameter.toFixed(2)})`;
+      statusTag.className = 'regime-tag';
+      if (e.regime_code === 'boundary') statusTag.classList.add('regime-tag--turbulent'); // Red-ish
+      else if (e.regime_code === 'mixed') statusTag.classList.add('regime-tag--transition'); // Yellow-ish
+      else statusTag.classList.add('regime-tag--laminar'); // Green-ish
+    }
+
+    // KPI Cards
+    document.getElementById('kpi-ratio-val').textContent = g.gear_ratio.toFixed(2);
+    document.getElementById('kpi-ratio-desc').textContent = `${inputs.pinion_teeth}T / ${inputs.gear_teeth}T`;
+    document.getElementById('kpi-velocity-val').textContent = e.pitch_line_velocity_m_s.toFixed(2);
+    document.getElementById('kpi-regime-val').textContent = e.regime;
+    document.getElementById('kpi-lambda-desc').textContent = `Lambda Λ = ${e.lambda_parameter.toFixed(3)}`;
+
+    // Add colored borders and backgrounds based on EHL status
+    const kpiLambda = document.getElementById('kpi-lambda-card');
+    kpiLambda.className = 'kpi-card kpi-card--lambda kpi-card--highlight';
+    kpiLambda.classList.remove('kpi-card--boundary', 'kpi-card--mixed', 'kpi-card--hydrodynamic');
+    
+    if (e.regime_code === 'boundary') {
+      kpiLambda.classList.add('kpi-card--boundary');
+    } else if (e.regime_code === 'mixed') {
+      kpiLambda.classList.add('kpi-card--mixed');
+    } else {
+      kpiLambda.classList.add('kpi-card--hydrodynamic');
+    }
+
+    // Detailed Table
+    document.getElementById('tbl-d1').textContent = g.pitch_diameter_pinion_mm.toFixed(2) + ' mm';
+    document.getElementById('tbl-d2').textContent = g.pitch_diameter_gear_mm.toFixed(2) + ' mm';
+    document.getElementById('tbl-a').textContent = g.center_distance_mm.toFixed(2) + ' mm';
+    document.getElementById('tbl-u').textContent = e.entrainment_velocity_m_s.toFixed(3) + ' m/s';
+    document.getElementById('tbl-f').textContent = e.normal_load_n.toFixed(1) + ' N';
+    document.getElementById('tbl-radius').textContent = (e.equivalent_radius_m * 1000).toFixed(2) + ' mm';
+    document.getElementById('tbl-u-param').textContent = e.u_dimensionless.toExponential(4);
+    document.getElementById('tbl-w-param').textContent = e.w_dimensionless.toExponential(4);
+    document.getElementById('tbl-hmin').textContent = e.h_min_um.toFixed(5) + ' μm';
+    document.getElementById('tbl-lambda').textContent = e.lambda_parameter.toFixed(4);
+  }
+};
+
+// -----------------------------------------------------------------
+// 4. PLOTLY CHART
+// -----------------------------------------------------------------
+const PlotlyChart = {
+  rendered: false,
+
+  render(result, roughness) {
+    const sweep = result.sweep;
+    
+    // Draw the speed sweep line
+    const trace = {
+      x: sweep.rpms,
+      y: sweep.lambdas,
+      mode: 'lines',
+      name: 'Lambda index (Λ)',
+      line: { color: '#a78bfa', width: 3 },
+    };
+
+    // Current operating point marker
+    const opTrace = {
+      x: [result.ehl.entrainment_velocity_m_s ? result.ehl.entrainment_velocity_m_s * 60000 / (Math.PI * result.geometry.pitch_diameter_pinion_mm) : 1500.0],
+      y: [result.ehl.lambda_parameter],
+      mode: 'markers',
+      name: 'Operating Point',
+      marker: { color: '#ffffff', size: 10, line: { color: '#8b5cf6', width: 2 } }
+    };
+    
+    // Read user actual pinion RPM
+    opTrace.x = [parseFloat(document.getElementById('pinion_rpm').value)];
+
+    const layout = {
+      paper_bgcolor: 'transparent',
+      plot_bgcolor:  '#0d1526',
+      font: { family: 'Inter, sans-serif', color: '#94a3b8', size: 10 },
+      margin: { t: 10, r: 16, b: 36, l: 48 },
+      xaxis: {
+        gridcolor: 'rgba(255,255,255,0.05)',
+        zerolinecolor: 'rgba(255,255,255,0.15)',
+        title: { text: 'Pinion Speed (RPM)', font: { size: 10, color: '#64748b' } },
+        tickfont: { family: 'JetBrains Mono, monospace', size: 9 }
+      },
+      yaxis: {
+        gridcolor: 'rgba(255,255,255,0.05)',
+        zerolinecolor: 'rgba(255,255,255,0.15)',
+        title: { text: 'Lambda Parameter (Λ)', font: { size: 10, color: '#64748b' } },
+        tickfont: { family: 'JetBrains Mono, monospace', size: 9 }
+      },
+      legend: { x: 0.05, y: 0.95, font: { size: 8 } },
+      
+      // Highlight zones using shapes
+      shapes: [
+        // Boundary Friction Zone (Lambda < 1) - Red band
+        {
+          type: 'rect',
+          xref: 'paper', yref: 'y',
+          x0: 0, x1: 1,
+          y0: 0, y1: 1.0,
+          fillcolor: 'rgba(239, 68, 68, 0.06)',
+          line: { width: 0 }
+        },
+        // Mixed Lubrication Zone (1 <= Lambda < 3) - Yellow band
+        {
+          type: 'rect',
+          xref: 'paper', yref: 'y',
+          x0: 0, x1: 1,
+          y0: 1.0, y1: 3.0,
+          fillcolor: 'rgba(245, 158, 11, 0.06)',
+          line: { width: 0 }
+        },
+        // Full Hydrodynamic Zone (Lambda >= 3) - Green band
+        {
+          type: 'rect',
+          xref: 'paper', yref: 'y',
+          x0: 0, x1: 1,
+          y0: 3.0, y1: Math.max(10, Math.max(...sweep.lambdas) * 1.1),
+          fillcolor: 'rgba(16, 185, 129, 0.06)',
+          line: { width: 0 }
+        }
+      ]
+    };
+
+    document.getElementById('chart-placeholder')?.remove();
+
+    if (!this.rendered) {
+      Plotly.newPlot('plotly-chart', [trace, opTrace], layout, { responsive: true, displaylogo: false });
+      this.rendered = true;
+    } else {
+      Plotly.react('plotly-chart', [trace, opTrace], layout, { responsive: true, displaylogo: false });
+    }
+  }
+};
+
+// -----------------------------------------------------------------
+// 5. THREE.JS Spur Gear interlocking simulation
+// -----------------------------------------------------------------
+const ThreeGears = {
+  scene: null,
+  camera: null,
+  renderer: null,
+  controls: null,
+  pinionMesh: null,
+  gearMesh: null,
+  filmIndicator: null,
+  
+  pinionSpeed: 0.01,
+  pinionTeeth: 20,
+  gearTeeth: 40,
+  module: 3.0,
+
+  targetCameraPos: null,
+  targetLookAt: new THREE.Vector3(0, 0, 0),
+  transitioning: false,
+  autoOrbit: false,
+
+  init() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    // Scene
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x050b18);
+
+    // Camera
+    this.camera = new THREE.PerspectiveCamera(45, canvas.offsetWidth / canvas.offsetHeight, 0.1, 100);
+    this.camera.position.set(0, 0, 3.5);
+    this.camera.lookAt(0, 0, 0);
+
+    // Renderer
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    this.renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // Controls
+    if (typeof THREE.OrbitControls !== 'undefined') {
+      this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+      this.controls.enableDamping = true;
+      this.controls.dampingFactor = 0.05;
+      this.controls.minDistance = 1;
+      this.controls.maxDistance = 15;
+    }
+
+    // Lights
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    const pointLight = new THREE.PointLight(0xffffff, 0.9);
+    pointLight.position.set(5, 5, 5);
+    this.scene.add(pointLight);
+
+    const dirLight = new THREE.DirectionalLight(0x60a5fa, 0.6);
+    dirLight.position.set(-5, -2, -5);
+    this.scene.add(dirLight);
+
+    // Grid Floor
+    const grid = new THREE.GridHelper(10, 20, 0x1e3a5f, 0x111e35);
+    grid.position.y = -1.5;
+    this.scene.add(grid);
+
+    // Camera controls listeners
+    const orbitCheckbox = document.getElementById('auto-orbit');
+    const sliderX = document.getElementById('cam-slider-x');
+    const sliderY = document.getElementById('cam-slider-y');
+    const sliderZ = document.getElementById('cam-slider-z');
+    const valX = document.getElementById('cam-val-x');
+    const valY = document.getElementById('cam-val-y');
+    const valZ = document.getElementById('cam-val-z');
+
+    if (orbitCheckbox) {
+      orbitCheckbox.addEventListener('change', (e) => {
+        this.autoOrbit = e.target.checked;
+        if (this.autoOrbit) {
+          this.transitioning = false;
+          this.targetCameraPos = null;
+        }
+      });
+    }
+
+    const triggerPreset = (x, y, z) => {
+      this.targetCameraPos = new THREE.Vector3(x, y, z);
+      this.transitioning = true;
+      this.autoOrbit = false;
+      if (orbitCheckbox) orbitCheckbox.checked = false;
+    };
+
+    document.getElementById('btn-view-iso')?.addEventListener('click', () => triggerPreset(2.0, 1.5, 2.5));
+    document.getElementById('btn-view-side')?.addEventListener('click', () => triggerPreset(0, 0, 3.5));
+    document.getElementById('btn-view-top')?.addEventListener('click', () => triggerPreset(0, 3.5, 0.01));
+    document.getElementById('btn-view-inlet')?.addEventListener('click', () => triggerPreset(-3.5, 0, 0));
+
+    const handleSliderChange = () => {
+      if (this.autoOrbit) {
+        this.autoOrbit = false;
+        if (orbitCheckbox) orbitCheckbox.checked = false;
+      }
+      this.transitioning = false;
+      this.targetCameraPos = null;
+      this.camera.position.set(
+        parseFloat(sliderX.value),
+        parseFloat(sliderY.value),
+        parseFloat(sliderZ.value)
+      );
+      this.camera.lookAt(0, 0, 0);
+      if (this.controls) this.controls.target.set(0, 0, 0);
+      
+      valX.textContent = parseFloat(sliderX.value).toFixed(2);
+      valY.textContent = parseFloat(sliderY.value).toFixed(2);
+      valZ.textContent = parseFloat(sliderZ.value).toFixed(2);
+    };
+
+    [sliderX, sliderY, sliderZ].forEach(slider => {
+      slider?.addEventListener('input', handleSliderChange);
+    });
+
+    // Start rendering loop
+    this.animate();
+
+    window.addEventListener('resize', () => this.onResize());
+  },
+
+  createGearGeometry(pitchRadius, numTeeth, thickness) {
+    const shape = new THREE.Shape();
+    // Dedendum and addendum relative spacing
+    const addendum = pitchRadius + 0.15 * (pitchRadius / numTeeth);
+    const dedendum = pitchRadius - 0.2 * (pitchRadius / numTeeth);
+    
+    for (let i = 0; i < numTeeth; i++) {
+      const angle = (i / numTeeth) * Math.PI * 2;
+      const midAngle1 = angle + (0.25 / numTeeth) * Math.PI * 2;
+      const midAngle2 = angle + (0.5 / numTeeth) * Math.PI * 2;
+      const midAngle3 = angle + (0.75 / numTeeth) * Math.PI * 2;
+      const nextAngle = ((i + 1) / numTeeth) * Math.PI * 2;
+      
+      const x0 = dedendum * Math.cos(angle);
+      const y0 = dedendum * Math.sin(angle);
+      
+      if (i === 0) {
+        shape.moveTo(x0, y0);
+      } else {
+        shape.lineTo(x0, y0);
+      }
+      shape.lineTo(addendum * Math.cos(midAngle1), addendum * Math.sin(midAngle1));
+      shape.lineTo(addendum * Math.cos(midAngle2), addendum * Math.sin(midAngle2));
+      shape.lineTo(dedendum * Math.cos(midAngle3), dedendum * Math.sin(midAngle3));
+      shape.lineTo(dedendum * Math.cos(nextAngle), dedendum * Math.sin(nextAngle));
+    }
+    
+    // Add central shaft shaft hole
+    const holePath = new THREE.Path();
+    holePath.absarc(0, 0, Math.min(0.25, pitchRadius * 0.28), 0, Math.PI * 2, true);
+    shape.holes.push(holePath);
+
+    const extrudeSettings = {
+      depth: thickness,
+      bevelEnabled: true,
+      bevelSegments: 2,
+      steps: 1,
+      bevelSize: 0.015,
+      bevelThickness: 0.015
+    };
+    
+    return new THREE.ExtrudeGeometry(shape, extrudeSettings);
+  },
+
+  updateGears(module, Z1, Z2, rpm, lambda, regimeCode) {
+    // 1. Remove old meshes
+    if (this.pinionMesh) this.scene.remove(this.pinionMesh);
+    if (this.gearMesh) this.scene.remove(this.gearMesh);
+    if (this.filmIndicator) this.scene.remove(this.filmIndicator);
+
+    this.module = module;
+    this.pinionTeeth = Z1;
+    this.gearTeeth = Z2;
+    // Rotation speed based on RPM input
+    this.pinionSpeed = (rpm / 1500.0) * 0.4; 
+
+    // 2. Standard pitch diameters
+    const d1 = module * Z1;
+    const d2 = module * Z2;
+    const r1 = d1 / 2.0;
+    const r2 = d2 / 2.0;
+
+    // Scale viewport coordinates so max gear radius is scaled to 1.1 units
+    const maxR = Math.max(r1, r2);
+    const scale = 1.1 / maxR;
+    const r1_s = r1 * scale;
+    const r2_s = r2 * scale;
+    const thick_s = 0.22;
+
+    // 3. Materials
+    const pinionMat = new THREE.MeshPhongMaterial({ color: 0x60a5fa, shininess: 80, specular: 0x555555 });
+    const gearMat = new THREE.MeshPhongMaterial({ color: 0xf59e0b, shininess: 80, specular: 0x555555 });
+
+    // 4. Create Geometries
+    const pinionGeo = this.createGearGeometry(r1_s, Z1, thick_s);
+    const gearGeo = this.createGearGeometry(r2_s, Z2, thick_s);
+
+    // Center geometry origins to be in middle of gear
+    pinionGeo.center();
+    gearGeo.center();
+
+    this.pinionMesh = new THREE.Mesh(pinionGeo, pinionMat);
+    this.gearMesh = new THREE.Mesh(gearGeo, gearMat);
+
+    // Position them so their pitch point contact is at the exact origin (0,0,0)
+    this.pinionMesh.position.set(-r1_s, 0, 0);
+    this.gearMesh.position.set(r2_s, 0, 0);
+
+    this.scene.add(this.pinionMesh);
+    this.scene.add(this.gearMesh);
+
+    // 5. Contact point oil film indicator
+    const filmColor = regimeCode === 'boundary' ? 0xef4444 : (regimeCode === 'mixed' ? 0xf59e0b : 0x34d399);
+    const filmGeo = new THREE.SphereGeometry(0.045, 16, 16);
+    const filmMat = new THREE.MeshBasicMaterial({ color: filmColor, transparent: true, opacity: 0.85 });
+    this.filmIndicator = new THREE.Mesh(filmGeo, filmMat);
+    this.filmIndicator.position.set(0, 0, thick_s / 2);
+    this.scene.add(this.filmIndicator);
+  },
+
+  animate() {
+    requestAnimationFrame(() => this.animate());
+
+    const time = Date.now() * 0.001;
+
+    // Rotate gears synchronously
+    if (this.pinionMesh && this.gearMesh) {
+      // Rotation angle
+      const theta1 = time * this.pinionSpeed;
+      // Rotation of Gear is opposite and ratioed
+      const theta2 = -(theta1 * this.pinionTeeth / this.gearTeeth) + (Math.PI + Math.PI / this.gearTeeth);
+      
+      this.pinionMesh.rotation.z = theta1;
+      this.gearMesh.rotation.z = theta2;
+    }
+
+    // Camera Auto-orbit
+    if (this.autoOrbit) {
+      const orbitTime = Date.now() * 0.0004;
+      const radius = 3.5;
+      this.camera.position.x = radius * Math.cos(orbitTime);
+      this.camera.position.z = radius * Math.sin(orbitTime);
+      this.camera.position.y = 0.5 * Math.sin(orbitTime * 0.5);
+      this.camera.lookAt(0, 0, 0);
+      if (this.controls) this.controls.target.set(0, 0, 0);
+    }
+
+    // Camera preset lerping
+    if (this.transitioning && this.targetCameraPos) {
+      this.camera.position.lerp(this.targetCameraPos, 0.1);
+      this.camera.lookAt(this.targetLookAt);
+      if (this.controls) this.controls.target.copy(this.targetLookAt);
+      
+      if (this.camera.position.distanceTo(this.targetCameraPos) < 0.01) {
+        this.camera.position.copy(this.targetCameraPos);
+        this.transitioning = false;
+        this.targetCameraPos = null;
+      }
+    }
+
+    if (this.controls) this.controls.update();
+
+    // Sync camera slider coordinates
+    const sliderX = document.getElementById('cam-slider-x');
+    const sliderY = document.getElementById('cam-slider-y');
+    const sliderZ = document.getElementById('cam-slider-z');
+    const valX = document.getElementById('cam-val-x');
+    const valY = document.getElementById('cam-val-y');
+    const valZ = document.getElementById('cam-val-z');
+
+    if (sliderX && sliderY && sliderZ) {
+      if (document.activeElement !== sliderX) {
+        sliderX.value = this.camera.position.x;
+        if (valX) valX.textContent = this.camera.position.x.toFixed(2);
+      }
+      if (document.activeElement !== sliderY) {
+        sliderY.value = this.camera.position.y;
+        if (valY) valY.textContent = this.camera.position.y.toFixed(2);
+      }
+      if (document.activeElement !== sliderZ) {
+        sliderZ.value = this.camera.position.z;
+        if (valZ) valZ.textContent = this.camera.position.z.toFixed(2);
+      }
+    }
+
+    this.renderer.render(this.scene, this.camera);
+  },
+
+  onResize() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || !this.renderer) return;
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h);
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  FormManager.init();
+  ThreeGears.init();
+});
+</script>
+{% endblock %}

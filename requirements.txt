@@ -1,0 +1,51 @@
+# =============================================================================
+# Scientific Dashboard — Python Requirements
+# Tested with Python 3.12+ (recommended); Python 3.14 RC supported with notes.
+# Install: pip install -r requirements.txt
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Web Framework
+# ---------------------------------------------------------------------------
+Django>=5.1,<6.0
+djangorestframework>=3.15,<4.0
+django-cors-headers>=4.4,<5.0       # CORS for local Vite dev server
+django-environ>=0.11,<0.12          # .env file loading
+
+# ---------------------------------------------------------------------------
+# Mathematics — Symbolic, Numeric, High-Precision
+# ---------------------------------------------------------------------------
+numpy>=1.26,<3.0                    # Core numeric arrays
+scipy>=1.13,<2.0                    # Scientific algorithms (ODEs, linalg, stats)
+sympy>=1.13,<2.0                    # Symbolic mathematics (exact CAS)
+mpmath>=1.3,<2.0                    # Arbitrary-precision floating-point arithmetic
+
+# ---------------------------------------------------------------------------
+# Units & Dimensional Analysis
+# ---------------------------------------------------------------------------
+pint>=0.24,<0.25                    # Physical units; prevents dimensional errors
+
+# ---------------------------------------------------------------------------
+# Fluid Mechanics & Hydraulics
+# ---------------------------------------------------------------------------
+fluids>=1.0.27,<2.0                 # Pipe flow, pressure drop, fittings, pumps
+
+# Note: Advanced scientific libraries (sfepy, pymatgen, ase, mendeleev) 
+# have been moved to requirements-advanced.txt as they do not support Python 3.14 on Windows yet.
+
+# ---------------------------------------------------------------------------
+# Data Processing & Serialization
+# ---------------------------------------------------------------------------
+pandas>=2.2,<3.0                    # Tabular data manipulation
+orjson>=3.10,<4.0                   # Fast JSON serialization for API responses
+
+# ---------------------------------------------------------------------------
+# Async & Task Queue (future-ready)
+# ---------------------------------------------------------------------------
+celery>=5.4,<6.0                    # Async task queue for heavy computations
+redis>=5.0,<6.0                     # Celery broker / cache backend
+
+# ---------------------------------------------------------------------------
+# Development & Testing
+# ---------------------------------------------------------------------------
+# (see requirements-dev.txt for dev-only deps)

@@ -1,0 +1,82 @@
+"""
+apps/app_materials/services.py
+================================
+Structural & Finite Element Analysis (FEA) service layer.
+
+Libraries:
+    - sfepy:   Full FEA engine — mesh generation, element matrices, solver
+    - numpy:   Matrix construction and result arrays
+    - scipy:   Sparse linear solver (for large FEA systems)
+    - pint:    Unit-safe stress/strain calculations
+
+Planned modules (scaffold):
+    - BeamDeflectionService:   Euler-Bernoulli beam bending analysis
+    - TrussAnalysisService:    2D/3D truss FEA
+    - PlateStressService:      Thin plate theory + SfePy solver
+"""
+
+import logging
+import numpy as np
+from apps.core.units import Q_, to_si
+
+logger = logging.getLogger(__name__)
+
+
+class BeamDeflectionService:
+    """
+    Euler-Bernoulli beam deflection under point/distributed load.
+
+    Governing equation: EI · d⁴w/dx⁴ = q(x)
+    where E = Young's modulus, I = second moment of area, w = deflection.
+
+    This is a simplified analytical solution for uniform beams.
+    SfePy is used for complex geometries and loading conditions.
+    """
+
+    def __init__(
+        self,
+        length_m: float,
+        youngs_modulus_gpa: float,
+        second_moment_m4: float,
+        load_kn: float,
+        load_type: str = 'point_centre',  # or 'uniform'
+    ):
+        self.L  = length_m
+        self.E  = youngs_modulus_gpa * 1e9   # GPa → Pa
+        self.I  = second_moment_m4
+        self.P  = load_kn * 1000             # kN → N
+        self.load_type = load_type
+
+    def compute(self) -> dict:
+        """
+        Compute maximum deflection and deflection curve.
+
+        Returns:
+            dict with x_positions, deflection_profile, max_deflection_mm
+        """
+        n_points = 100
+        x = np.linspace(0, self.L, n_points)
+        EI = self.E * self.I
+
+        if self.load_type == 'point_centre':
+            # δ_max = PL³/(48EI) at centre (simply supported)
+            delta_max = self.P * self.L ** 3 / (48 * EI)
+            # Deflection curve: w(x) = Px/(48EI) * (3L² - 4x²) for x ≤ L/2
+            w = np.where(
+                x <= self.L / 2,
+                self.P * x / (48 * EI) * (3 * self.L ** 2 - 4 * x ** 2),
+                self.P * (self.L - x) / (48 * EI) * (3 * self.L ** 2 - 4 * (self.L - x) ** 2),
+            )
+        else:
+            # Uniform distributed load: δ_max = 5qL⁴/(384EI)
+            q = self.P / self.L   # N/m
+            delta_max = 5 * q * self.L ** 4 / (384 * EI)
+            # w(x) = qx/(24EI) * (L³ - 2Lx² + x³)
+            w = q * x / (24 * EI) * (self.L ** 3 - 2 * self.L * x ** 2 + x ** 3)
+
+        return {
+            'x_positions_m': x.tolist(),
+            'deflection_m': w.tolist(),
+            'max_deflection_mm': float(delta_max * 1000),
+            'EI_nm2': float(EI),
+        }

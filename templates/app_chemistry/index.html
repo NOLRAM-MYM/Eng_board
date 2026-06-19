@@ -1,0 +1,620 @@
+{% extends "base.html" %}
+
+{% block title %}Chemistry & Atoms — Element Explorer{% endblock %}
+{% block meta_description %}Interactive periodic table element explorer: atomic mass, period, group, electron configuration, and 3D Bohr model of the atom.{% endblock %}
+{% block nav_chemistry %}sidebar__link--active{% endblock %}
+{% block breadcrumb %}🧪 Chemistry &amp; Atoms / Element Explorer{% endblock %}
+
+{% block content %}
+<div class="chemistry-dashboard" id="chemistry-dashboard">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-header__title">Periodic Table &amp; Atomic Structure</h1>
+      <p class="page-header__desc">
+        Atomic properties explorer · Physical &amp; Chemical characteristics ·
+        Local periodic table fallback database · Dynamic 3D Bohr atom simulation
+      </p>
+    </div>
+    <div class="page-header__badges">
+      <span class="stat-badge stat-badge--blue" id="badge-element">
+        <span>Selected</span><span id="element-value">Iron (Fe)</span>
+      </span>
+      <span class="stat-badge stat-badge--green" id="badge-number">
+        <span>Z</span><span id="number-value">26</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Main Layout: 3-column grid -->
+  <div class="dashboard-layout">
+
+    <!-- ============ LEFT PANEL: Element Selection ============ -->
+    <aside class="dashboard-layout__left" id="input-panel" role="complementary" aria-label="Element Selector">
+
+      <!-- Search & Selector -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card__header">
+          <div>
+            <div class="card__title">Search Element</div>
+            <div class="card__subtitle">Enter name, symbol, or atomic number</div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <input class="form-input" type="text" id="element-search" placeholder="e.g. Fe, Carbon, 8" aria-label="Search element">
+        </div>
+        <button class="btn btn--primary btn--full" id="search-btn">Search</button>
+      </div>
+
+      <!-- Quick Elements List -->
+      <div class="card" style="flex:1; display:flex; flex-direction:column; max-height:480px; overflow-y:auto;">
+        <div class="card__header" style="margin-bottom:12px;">
+          <div>
+            <div class="card__title">Common Elements</div>
+            <div class="card__subtitle">Click to explore immediately</div>
+          </div>
+        </div>
+        <ul class="element-list" id="quick-elements" role="list">
+          <li class="element-list-item element-list-item--active" data-symbol="Fe"><span>26</span><span>Fe</span><span>Iron</span></li>
+          <li class="element-list-item" data-symbol="H"><span>1</span><span>H</span><span>Hydrogen</span></li>
+          <li class="element-list-item" data-symbol="He"><span>2</span><span>He</span><span>Helium</span></li>
+          <li class="element-list-item" data-symbol="Li"><span>3</span><span>Li</span><span>Lithium</span></li>
+          <li class="element-list-item" data-symbol="C"><span>6</span><span>C</span><span>Carbon</span></li>
+          <li class="element-list-item" data-symbol="N"><span>7</span><span>N</span><span>Nitrogen</span></li>
+          <li class="element-list-item" data-symbol="O"><span>8</span><span>O</span><span>Oxygen</span></li>
+          <li class="element-list-item" data-symbol="Na"><span>11</span><span>Na</span><span>Sodium</span></li>
+          <li class="element-list-item" data-symbol="Mg"><span>12</span><span>Mg</span><span>Magnesium</span></li>
+          <li class="element-list-item" data-symbol="Al"><span>13</span><span>Al</span><span>Aluminium</span></li>
+          <li class="element-list-item" data-symbol="Si"><span>14</span><span>Si</span><span>Silicon</span></li>
+          <li class="element-list-item" data-symbol="S"><span>16</span><span>S</span><span>Sulfur</span></li>
+          <li class="element-list-item" data-symbol="Cl"><span>17</span><span>Cl</span><span>Chlorine</span></li>
+          <li class="element-list-item" data-symbol="Cu"><span>29</span><span>Cu</span><span>Copper</span></li>
+          <li class="element-list-item" data-symbol="Au"><span>79</span><span>Au</span><span>Gold</span></li>
+        </ul>
+      </div>
+
+    </aside>
+
+    <!-- ============ CENTER PANEL: 3D Atom Workbench ============ -->
+    <section class="dashboard-layout__center" aria-label="3D Bohr model simulation">
+
+      <!-- Three.js 3D Bohr Atom Card -->
+      <div class="card card--glow">
+        <div class="card__header">
+          <div>
+            <div class="card__title" style="display:flex; align-items:center; gap:8px;">
+              <span>🌀 3D Bohr Atom Workbench</span>
+              <span class="regime-tag" id="workbench-status" style="font-size:0.65rem; padding:2px 6px;">Fe (Z=26)</span>
+            </div>
+            <div class="card__subtitle">Concentric electron shell orbits (Three.js)</div>
+          </div>
+        </div>
+        
+        <canvas id="three-canvas" aria-label="3D animated atom model simulation"
+                style="width:100%; height:420px; border-radius:8px; display:block; background:#050b18;">
+        </canvas>
+        
+        <div class="velocity-legend" aria-label="Atomic component color scale" style="justify-content:center; gap:16px;">
+          <span style="color:#ef4444">● Proton</span>
+          <span style="color:#3b82f6">● Neutron</span>
+          <span style="color:#8b5cf6">● Electron</span>
+        </div>
+        <p style="font-size:0.7rem; color:var(--text-muted); margin-top:8px; text-align:center;">
+          * Interactive orbits: drag to rotate/zoom in XYZ space.
+        </p>
+
+        <!-- 3D Camera Controls -->
+        <div class="camera-controls" style="margin-top:16px; margin-bottom: 8px; padding:12px; background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md);">
+          <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span>🎥 Camera Viewpoint (XYZ)</span>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.72rem; color:var(--text-muted);">
+              <input type="checkbox" id="auto-orbit" style="cursor:pointer; accent-color:var(--accent-primary);"> Auto-Orbit
+            </label>
+          </div>
+          
+          <!-- View Presets -->
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:10px;">
+            <button type="button" class="btn btn--outline" id="btn-view-iso" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Iso</button>
+            <button type="button" class="btn btn--outline" id="btn-view-side" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Side (Z)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-top" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Top (Y)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-inlet" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Inlet (X)</button>
+          </div>
+
+          <!-- XYZ Sliders -->
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#ef4444; font-weight:bold;">X</span>
+              <input type="range" id="cam-slider-x" min="-12" max="12" step="0.05" value="0" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#ef4444;">
+              <span id="cam-val-x" style="width:28px; text-align:right;">0.00</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#10b981; font-weight:bold;">Y</span>
+              <input type="range" id="cam-slider-y" min="-12" max="12" step="0.05" value="3.0" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#10b981;">
+              <span id="cam-val-y" style="width:28px; text-align:right;">3.00</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#3b82f6; font-weight:bold;">Z</span>
+              <input type="range" id="cam-slider-z" min="-12" max="12" step="0.05" value="6.0" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#3b82f6;">
+              <span id="cam-val-z" style="width:28px; text-align:right;">6.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============ RIGHT PANEL: Properties ============ -->
+    <aside class="dashboard-layout__right" id="right-panel" role="complementary" aria-label="Atomic properties">
+
+      <!-- KPI Cards stacked in a neat vertical grid -->
+      <div class="kpi-grid" id="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="kpi-card kpi-card--reynolds" id="kpi-symbol-card">
+          <div class="kpi-label">Symbol</div>
+          <div class="kpi-value" id="prop-symbol">—</div>
+          <div class="kpi-unit" id="prop-name">—</div>
+        </div>
+        <div class="kpi-card kpi-card--velocity" id="kpi-z-card">
+          <div class="kpi-label">Atomic Number</div>
+          <div class="kpi-value" id="prop-z">—</div>
+          <div class="kpi-unit">protons</div>
+        </div>
+        <div class="kpi-card kpi-card--friction kpi-card--highlight" id="kpi-mass-card" style="grid-column: span 2;">
+          <div class="kpi-label">Atomic Mass</div>
+          <div class="kpi-value" id="prop-mass">—</div>
+          <div class="kpi-unit">unified atomic mass units</div>
+        </div>
+      </div>
+
+      <!-- Detailed Results Table -->
+      <div class="card" id="results-table-card">
+        <div class="card__title" style="margin-bottom:12px;">📋 Element Characteristics</div>
+        <table class="results-table" id="results-table" aria-label="Chemical properties">
+          <tbody>
+            <tr><td>Period</td><td id="prop-period">—</td></tr>
+            <tr><td>Group</td><td id="prop-group">—</td></tr>
+            <tr><td>Electron Config</td><td id="prop-configuration" style="font-family:var(--font-mono); font-size:0.75rem;">—</td></tr>
+            <tr><td>Electronegativity</td><td id="prop-electronegativity">—</td></tr>
+            <tr><td>Covalent Radius</td><td id="prop-radius">—</td></tr>
+            <tr><td>Ionization Energy</td><td id="prop-ionization">—</td></tr>
+            <tr><td>Density</td><td id="prop-density">—</td></tr>
+            <tr><td>Melting Point</td><td id="prop-melting">—</td></tr>
+            <tr><td>Boiling Point</td><td id="prop-boiling">—</td></tr>
+            <tr class="results-table__highlight"><td>Oxidation States</td><td id="prop-oxidation">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </aside>
+
+  </div>
+</div>
+
+<style>
+  .chemistry-dashboard { max-width: 1650px; margin: 0 auto; }
+  
+  /* Element List */
+  .element-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .element-list-item { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    padding: 10px 14px; 
+    border-radius: var(--radius-sm); 
+    border: 1px solid var(--border-subtle); 
+    background: rgba(255, 255, 255, 0.02); 
+    cursor: pointer; 
+    transition: all var(--transition-fast); 
+  }
+  .element-list-item span:first-child { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); width: 20px; }
+  .element-list-item span:nth-child(2) { font-family: var(--font-mono); font-weight: 700; color: var(--accent-primary); width: 30px; }
+  .element-list-item span:nth-child(3) { color: var(--text-secondary); font-size: 0.85rem; }
+  .element-list-item:hover { border-color: var(--accent-primary); background: rgba(139, 92, 246, 0.05); }
+  .element-list-item--active { border-color: var(--accent-primary); background: rgba(139, 92, 246, 0.12); box-shadow: var(--glow-violet); }
+</style>
+
+{% load static %}
+<script src="{% static 'core/vendor/plotly.min.js' %}"></script>
+<script src="{% static 'core/vendor/three.min.js' %}"></script>
+<script src="{% static 'core/vendor/OrbitControls.js' %}"></script>
+
+<script>
+// -----------------------------------------------------------------
+// 1. API CLIENT
+// -----------------------------------------------------------------
+const API = {
+  baseUrl: '/api/chemistry',
+  
+  async getElement(identifier) {
+    const response = await fetch(`${this.baseUrl}/element/${identifier}/`);
+    const json = await response.json();
+    if (!response.ok) throw json;
+    return json;
+  }
+};
+
+// -----------------------------------------------------------------
+// 2. DASHBOARD MANAGER
+// -----------------------------------------------------------------
+const DashboardManager = {
+  searchField: document.getElementById('element-search'),
+  searchBtn:   document.getElementById('search-btn'),
+  quickList:   document.getElementById('quick-elements'),
+
+  init() {
+    // Search listener
+    this.searchBtn.addEventListener('click', () => this.handleSearch());
+    this.searchField.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') this.handleSearch();
+    });
+
+    // Quick list listeners
+    this.quickList.addEventListener('click', (e) => {
+      const item = e.target.closest('.element-list-item');
+      if (item) {
+        const symbol = item.dataset.symbol;
+        this.selectElement(symbol);
+      }
+    });
+
+    // Initial load (Iron)
+    this.selectElement('Fe');
+  },
+
+  async handleSearch() {
+    const query = this.searchField.value.trim();
+    if (!query) return;
+    this.selectElement(query);
+  },
+
+  async selectElement(identifier) {
+    showLoading(`Fetching element '${identifier}' properties…`);
+    try {
+      const response = await API.getElement(identifier);
+      const data = response.data;
+
+      // Update active list item
+      document.querySelectorAll('.element-list-item').forEach(li => {
+        li.classList.toggle('element-list-item--active', li.dataset.symbol.toUpperCase() === data.symbol.toUpperCase());
+      });
+
+      this.updateUI(data);
+      ThreeAtom.buildAtom(data.atomic_number);
+    } catch (e) {
+      console.error(e);
+      showToast(`Element '${identifier}' not found in database.`, 'error');
+    } finally {
+      hideLoading();
+    }
+  },
+
+  updateUI(el) {
+    // Badges
+    document.getElementById('element-value').textContent = `${el.name} (${el.symbol})`;
+    document.getElementById('number-value').textContent = el.atomic_number;
+    
+    // Update workbench badge text
+    const statusTag = document.getElementById('workbench-status');
+    if (statusTag) {
+      statusTag.textContent = `${el.symbol} (Z=${el.atomic_number})`;
+    }
+
+    // Fields
+    document.getElementById('prop-name').textContent = el.name;
+    document.getElementById('prop-symbol').textContent = el.symbol;
+    document.getElementById('prop-z').textContent = el.atomic_number;
+    document.getElementById('prop-mass').textContent = el.atomic_mass.toFixed(4) + ' u';
+    document.getElementById('prop-period').textContent = el.period;
+    document.getElementById('prop-group').textContent = el.group || 'N/A';
+    document.getElementById('prop-configuration').textContent = el.electron_configuration || 'Unknown';
+    document.getElementById('prop-electronegativity').textContent = el.electronegativity ? el.electronegativity.toFixed(2) : 'N/A';
+    document.getElementById('prop-radius').textContent = el.atomic_radius_pm ? el.atomic_radius_pm + ' pm' : 'N/A';
+    document.getElementById('prop-ionization').textContent = el.ionisation_energy_ev ? el.ionisation_energy_ev.toFixed(3) + ' eV' : 'N/A';
+    document.getElementById('prop-density').textContent = el.density_g_cm3 ? el.density_g_cm3.toExponential(3) + ' g/cm³' : 'N/A';
+    document.getElementById('prop-melting').textContent = el.melting_point_k ? el.melting_point_k.toFixed(1) + ' K' : 'N/A';
+    document.getElementById('prop-boiling').textContent = el.boiling_point_k ? el.boiling_point_k.toFixed(1) + ' K' : 'N/A';
+    document.getElementById('prop-oxidation').textContent = el.oxidation_states?.length ? el.oxidation_states.join(', ') : 'None';
+  }
+};
+
+// -----------------------------------------------------------------
+// 3. THREE.JS 3D BOHR ATOM MODEL
+// -----------------------------------------------------------------
+const ThreeAtom = {
+  scene: null,
+  camera: null,
+  renderer: null,
+  controls: null,
+  nucleus: null,
+  electronGroup: null,
+  shells: [],
+  targetCameraPos: null,
+  targetLookAt: new THREE.Vector3(0, 0, 0),
+  transitioning: false,
+  autoOrbit: false,
+
+  init() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    // Scene
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x050b18);
+
+    // Camera
+    this.camera = new THREE.PerspectiveCamera(45, canvas.offsetWidth / canvas.offsetHeight, 0.1, 100);
+    this.camera.position.set(0, 3, 6);
+    this.camera.lookAt(0, 0, 0);
+
+    // Renderer
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    this.renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // Controls
+    if (typeof THREE.OrbitControls !== 'undefined') {
+      this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+      this.controls.enableDamping = true;
+      this.controls.dampingFactor = 0.05;
+      this.controls.minDistance = 2;
+      this.controls.maxDistance = 15;
+    }
+
+    // Lights
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const pointLight = new THREE.PointLight(0xffffff, 1.0);
+    pointLight.position.set(5, 5, 5);
+    this.scene.add(pointLight);
+
+    // Add Orbit Controls DOM elements
+    const orbitCheckbox = document.getElementById('auto-orbit');
+    const sliderX = document.getElementById('cam-slider-x');
+    const sliderY = document.getElementById('cam-slider-y');
+    const sliderZ = document.getElementById('cam-slider-z');
+    const valX = document.getElementById('cam-val-x');
+    const valY = document.getElementById('cam-val-y');
+    const valZ = document.getElementById('cam-val-z');
+
+    if (orbitCheckbox) {
+      orbitCheckbox.addEventListener('change', (e) => {
+        this.autoOrbit = e.target.checked;
+        if (this.autoOrbit) {
+          this.transitioning = false;
+          this.targetCameraPos = null;
+        }
+      });
+    }
+
+    const triggerPreset = (x, y, z) => {
+      this.targetCameraPos = new THREE.Vector3(x, y, z);
+      this.transitioning = true;
+      this.autoOrbit = false;
+      if (orbitCheckbox) orbitCheckbox.checked = false;
+    };
+
+    document.getElementById('btn-view-iso')?.addEventListener('click', () => triggerPreset(3.5, 3.0, 4.0));
+    document.getElementById('btn-view-side')?.addEventListener('click', () => triggerPreset(0, 0, 6));
+    document.getElementById('btn-view-top')?.addEventListener('click', () => triggerPreset(0, 6.0, 0.01));
+    document.getElementById('btn-view-inlet')?.addEventListener('click', () => triggerPreset(-6.0, 0, 0));
+
+    const handleSliderChange = () => {
+      if (this.autoOrbit) {
+        this.autoOrbit = false;
+        if (orbitCheckbox) orbitCheckbox.checked = false;
+      }
+      this.transitioning = false;
+      this.targetCameraPos = null;
+      this.camera.position.set(
+        parseFloat(sliderX.value),
+        parseFloat(sliderY.value),
+        parseFloat(sliderZ.value)
+      );
+      this.camera.lookAt(0, 0, 0);
+      if (this.controls) this.controls.target.set(0, 0, 0);
+      
+      valX.textContent = parseFloat(sliderX.value).toFixed(2);
+      valY.textContent = parseFloat(sliderY.value).toFixed(2);
+      valZ.textContent = parseFloat(sliderZ.value).toFixed(2);
+    };
+
+    [sliderX, sliderY, sliderZ].forEach(slider => {
+      slider?.addEventListener('input', handleSliderChange);
+    });
+
+    // Dynamic anim loop
+    this.animate();
+
+    window.addEventListener('resize', () => this.onResize());
+  },
+
+  buildAtom(Z) {
+    // Clear old structures
+    if (this.nucleus) this.scene.remove(this.nucleus);
+    if (this.electronGroup) this.scene.remove(this.electronGroup);
+
+    this.nucleus = new THREE.Group();
+    this.electronGroup = new THREE.Group();
+    this.shells = [];
+
+    this.scene.add(this.nucleus);
+    this.scene.add(this.electronGroup);
+
+    // 1. Nucleus (Protons & Neutrons clustered together)
+    // Draw up to 40 particles for performance and visual clarity
+    const numParticles = Math.min(Z * 2, 45); 
+    const protonGeo = new THREE.SphereGeometry(0.08, 16, 16);
+    const protonMat = new THREE.MeshPhongMaterial({ color: 0xef4444, shininess: 80 });
+    const neutronGeo = new THREE.SphereGeometry(0.08, 16, 16);
+    const neutronMat = new THREE.MeshPhongMaterial({ color: 0x3b82f6, shininess: 80 });
+
+    for (let i = 0; i < numParticles; i++) {
+      const isProton = i % 2 === 0;
+      const sphere = new THREE.Mesh(
+        isProton ? protonGeo : neutronGeo,
+        isProton ? protonMat : neutronMat
+      );
+      
+      // Cluster mathematically inside a sphere using random Gaussian/polar displacement
+      const r = 0.18 * Math.pow(Math.random(), 1/3);
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(Math.random() * 2 - 1);
+      
+      sphere.position.set(
+        r * Math.sin(phi) * Math.cos(theta),
+        r * Math.sin(phi) * Math.sin(theta),
+        r * Math.cos(phi)
+      );
+      this.nucleus.add(sphere);
+    }
+
+    // 2. Electron Shells (Bohr circles)
+    // Calculate shell distribution: Shell 1 (2), Shell 2 (8), Shell 3 (18), Shell 4 (32)...
+    let remainingElectrons = Z;
+    const shellSizes = [2, 8, 18, 32, 18, 8, 2];
+    const baseRadius = 0.6;
+    const radiusStep = 0.35;
+
+    const electronGeo = new THREE.SphereGeometry(0.045, 16, 16);
+    const electronMat = new THREE.MeshPhongMaterial({ color: 0x8b5cf6, emissive: 0x8b5cf6, shininess: 100 });
+
+    for (let s = 0; s < shellSizes.length; s++) {
+      if (remainingElectrons <= 0) break;
+      const electronsInShell = Math.min(remainingElectrons, shellSizes[s]);
+      remainingElectrons -= electronsInShell;
+
+      const radius = baseRadius + s * radiusStep;
+      
+      // Draw shell orbit line
+      const segments = 64;
+      const orbitGeo = new THREE.BufferGeometry();
+      const points = [];
+      for (let i = 0; i <= segments; i++) {
+        const theta = (i / segments) * Math.PI * 2;
+        points.push(radius * Math.cos(theta), 0, radius * Math.sin(theta));
+      }
+      orbitGeo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+      const orbitMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 });
+      const orbit = new THREE.Line(orbitGeo, orbitMat);
+      
+      // Tilt each orbit shell plane differently to look 3D and orbital-like!
+      const tiltX = (Math.random() - 0.5) * 0.5;
+      const tiltZ = (Math.random() - 0.5) * 0.5;
+      orbit.rotation.set(tiltX, 0, tiltZ);
+      this.electronGroup.add(orbit);
+
+      // Create electrons on this shell
+      const shellElectrons = [];
+      for (let e = 0; e < electronsInShell; e++) {
+        const electron = new THREE.Mesh(electronGeo, electronMat);
+        this.electronGroup.add(electron);
+        
+        shellElectrons.push({
+          mesh: electron,
+          angle: (e / electronsInShell) * Math.PI * 2,
+          radius: radius,
+          tiltX: tiltX,
+          tiltZ: tiltZ,
+          speed: 1.5 / (s + 1) // outer shells orbit slower
+        });
+      }
+      this.shells.push(shellElectrons);
+    }
+  },
+
+  animate() {
+    requestAnimationFrame(() => this.animate());
+
+    // 1. Auto-orbit
+    if (this.autoOrbit) {
+      const time = Date.now() * 0.0005;
+      const radius = 6.0;
+      this.camera.position.x = radius * Math.cos(time);
+      this.camera.position.z = radius * Math.sin(time);
+      this.camera.position.y = 3.0 + 1.0 * Math.sin(time * 0.5);
+      this.camera.lookAt(0, 0, 0);
+      if (this.controls) this.controls.target.set(0, 0, 0);
+    }
+
+    // 2. Camera preset lerping
+    if (this.transitioning && this.targetCameraPos) {
+      this.camera.position.lerp(this.targetCameraPos, 0.1);
+      this.camera.lookAt(this.targetLookAt);
+      if (this.controls) this.controls.target.copy(this.targetLookAt);
+      
+      if (this.camera.position.distanceTo(this.targetCameraPos) < 0.01) {
+        this.camera.position.copy(this.targetCameraPos);
+        this.transitioning = false;
+        this.targetCameraPos = null;
+      }
+    }
+
+    const time = Date.now() * 0.001;
+
+    // Spin nucleus slowly
+    if (this.nucleus) {
+      this.nucleus.rotation.y += 0.005;
+      this.nucleus.rotation.x += 0.002;
+    }
+
+    // Move electrons along orbits
+    this.shells.forEach(shell => {
+      shell.forEach(e => {
+        const currentAngle = e.angle + e.speed * time;
+        // Calculate coordinates in the rotated orbit plane
+        const localX = e.radius * Math.cos(currentAngle);
+        const localZ = e.radius * Math.sin(currentAngle);
+        
+        // Basic rotation mapping to match the shell's tilt
+        const pos = new THREE.Vector3(localX, 0, localZ);
+        pos.applyAxisAngle(new THREE.Vector3(1, 0, 0), e.tiltX);
+        pos.applyAxisAngle(new THREE.Vector3(0, 0, 1), e.tiltZ);
+        
+        e.mesh.position.copy(pos);
+      });
+    });
+
+    if (this.controls) this.controls.update();
+
+    // 3. Coordinate Sliders Sync
+    const sliderX = document.getElementById('cam-slider-x');
+    const sliderY = document.getElementById('cam-slider-y');
+    const sliderZ = document.getElementById('cam-slider-z');
+    const valX = document.getElementById('cam-val-x');
+    const valY = document.getElementById('cam-val-y');
+    const valZ = document.getElementById('cam-val-z');
+
+    if (sliderX && sliderY && sliderZ) {
+      if (document.activeElement !== sliderX) {
+        sliderX.value = this.camera.position.x;
+        if (valX) valX.textContent = this.camera.position.x.toFixed(2);
+      }
+      if (document.activeElement !== sliderY) {
+        sliderY.value = this.camera.position.y;
+        if (valY) valY.textContent = this.camera.position.y.toFixed(2);
+      }
+      if (document.activeElement !== sliderZ) {
+        sliderZ.value = this.camera.position.z;
+        if (valZ) valZ.textContent = this.camera.position.z.toFixed(2);
+      }
+    }
+
+    this.renderer.render(this.scene, this.camera);
+  },
+
+  onResize() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || !this.renderer) return;
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h);
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  DashboardManager.init();
+  ThreeAtom.init();
+});
+</script>
+{% endblock %}

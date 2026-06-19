@@ -1,0 +1,1031 @@
+{% extends "base.html" %}
+
+{% block title %}Fluid Mechanics — Pipe Flow{% endblock %}
+{% block meta_description %}Pipe flow analysis: Reynolds number, Darcy-Weisbach friction, pressure drop, velocity profile with Plotly.js charts and Three.js 3D simulation.{% endblock %}
+{% block nav_fluids %}sidebar__link--active{% endblock %}
+{% block breadcrumb %}💧 Fluid Mechanics / Pipe Flow Analysis{% endblock %}
+
+{% block content %}
+<!-- ============================================================
+     Fluid Mechanics — Pipe Flow Dashboard
+     ============================================================ -->
+<div class="fluids-dashboard" id="fluids-dashboard">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-header__title">Pipe Flow Analysis</h1>
+      <p class="page-header__desc">
+        Darcy-Weisbach framework · Colebrook-White friction · Reynolds classification ·
+        Velocity profile · Plotly chart · Three.js 3D simulation
+      </p>
+    </div>
+    <div class="page-header__badges">
+      <span class="stat-badge stat-badge--blue" id="badge-regime">
+        <span>Flow Regime</span><span id="regime-value">—</span>
+      </span>
+      <span class="stat-badge stat-badge--green" id="badge-re">
+        <span>Re</span><span id="re-value">—</span>
+      </span>
+      <span class="stat-badge stat-badge--violet" id="badge-dp">
+        <span>ΔP</span><span id="dp-value">—</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Main Layout: 3-column grid -->
+  <div class="dashboard-layout">
+
+    <!-- ============ LEFT PANEL: Input Form ============ -->
+    <aside class="dashboard-layout__left" id="input-panel" role="complementary" aria-label="Calculation inputs">
+
+      <!-- Fluid Preset Selector -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card__header">
+          <div>
+            <div class="card__title">Quick Presets</div>
+            <div class="card__subtitle">Load common fluid properties</div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <select class="form-input" id="fluid-preset" aria-label="Fluid preset selector">
+            <option value="">— Select fluid —</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Input Form -->
+      <form class="card" id="pipe-flow-form" novalidate aria-label="Pipe flow parameters">
+        <div class="card__header">
+          <div>
+            <div class="card__title">Pipe &amp; Flow Parameters</div>
+            <div class="card__subtitle">Enter values in the units shown</div>
+          </div>
+        </div>
+
+        <!-- PIPE GEOMETRY -->
+        <div class="form-section-label">📐 Pipe Geometry</div>
+
+        <div class="form-group">
+          <label class="form-label" for="diameter_mm">
+            Inner Diameter <span class="unit-tag">mm</span>
+          </label>
+          <input class="form-input" type="number" id="diameter_mm" name="diameter_mm"
+                 value="50" min="0.1" max="10000" step="0.1"
+                 placeholder="e.g. 50" aria-describedby="diameter-help">
+          <span class="form-help" id="diameter-help">Internal pipe diameter in millimetres</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="length_m">
+            Pipe Length <span class="unit-tag">m</span>
+          </label>
+          <input class="form-input" type="number" id="length_m" name="length_m"
+                 value="100" min="0.001" step="0.1" placeholder="e.g. 100">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="roughness_mm">
+            Wall Roughness (ε) <span class="unit-tag">mm</span>
+          </label>
+          <input class="form-input" type="number" id="roughness_mm" name="roughness_mm"
+                 value="0.046" min="0" max="10" step="0.001" placeholder="0.046 — commercial steel">
+        </div>
+
+        <!-- FLUID PROPERTIES -->
+        <div class="form-section-label">🧬 Fluid Properties</div>
+
+        <div class="form-group">
+          <label class="form-label" for="density_kg_m3">
+            Density (ρ) <span class="unit-tag">kg/m³</span>
+          </label>
+          <input class="form-input" type="number" id="density_kg_m3" name="density_kg_m3"
+                 value="998.2" min="0.001" step="0.1" placeholder="e.g. 998.2 (water)">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="viscosity_mpa_s">
+            Viscosity (μ) <span class="unit-tag">mPa·s</span>
+          </label>
+          <input class="form-input" type="number" id="viscosity_mpa_s" name="viscosity_mpa_s"
+                 value="1.002" min="0.000001" step="0.001" placeholder="e.g. 1.002 (water 20°C)">
+        </div>
+
+        <!-- FLOW CONDITION -->
+        <div class="form-section-label">🌊 Operating Condition</div>
+
+        <div class="form-group">
+          <label class="form-label" for="flow_rate_lpm">
+            Flow Rate <span class="unit-tag">L/min</span>
+          </label>
+          <input class="form-input" type="number" id="flow_rate_lpm" name="flow_rate_lpm"
+                 value="120" min="0" step="0.1" placeholder="e.g. 120">
+        </div>
+
+        <!-- FITTINGS (minor losses) -->
+        <div class="form-section-label">🔧 Fittings (Minor Losses)</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="num_elbows_90">90° Elbows</label>
+            <input class="form-input" type="number" id="num_elbows_90" name="num_elbows_90"
+                   value="0" min="0" max="100" step="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="num_gate_valves_open">Gate Valves</label>
+            <input class="form-input" type="number" id="num_gate_valves_open" name="num_gate_valves_open"
+                   value="0" min="0" max="100" step="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="num_check_valves">Check Valves</label>
+            <input class="form-input" type="number" id="num_check_valves" name="num_check_valves"
+                   value="0" min="0" max="100" step="1">
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button class="btn btn--primary btn--full" type="submit" id="calculate-btn">
+          <span id="btn-icon">▶</span>
+          <span id="btn-text">Calculate</span>
+        </button>
+
+        <!-- Warnings area -->
+        <div id="warnings-container" style="display:none; margin-top:12px;" role="alert"></div>
+      </form>
+
+    </aside>
+
+    <!-- ============ CENTER PANEL: 3D Visualization & Profile ============ -->
+    <section class="dashboard-layout__center" aria-label="3D simulation and velocity profile">
+
+      <!-- Three.js 3D Pipe Visualisation -->
+      <div class="card card--glow">
+        <div class="card__header">
+          <div>
+            <div class="card__title" style="display:flex; align-items:center; gap:8px;">
+              <span>🌀 3D Pipe Flow Workbench</span>
+              <span class="regime-tag" id="workbench-status" style="font-size:0.65rem; padding:2px 6px;">Active</span>
+            </div>
+            <div class="card__subtitle">Interactive particle velocity field and camera viewport control</div>
+          </div>
+          <button class="btn btn--outline" id="toggle-animation" style="padding:6px 12px; font-size:0.75rem;">
+            ⏸ Pause
+          </button>
+        </div>
+        
+        <canvas id="three-canvas" aria-label="3D animated pipe flow simulation"
+                style="width:100%; height:420px; border-radius:8px; display:block; background:#050b18;">
+        </canvas>
+        
+        <div class="velocity-legend" aria-label="Velocity colour scale">
+          <span style="color:#3b82f6">● Low</span>
+          <div class="legend-gradient"></div>
+          <span style="color:#ef4444">● High</span>
+        </div>
+
+        <!-- 3D Camera Controls -->
+        <div class="camera-controls" style="margin-top:16px; padding:12px; background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md);">
+          <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span>🎥 Camera Viewpoint (XYZ)</span>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.72rem; color:var(--text-muted);">
+              <input type="checkbox" id="auto-orbit" style="cursor:pointer; accent-color:var(--accent-primary);"> Auto-Orbit
+            </label>
+          </div>
+          
+          <!-- View Presets -->
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:10px;">
+            <button type="button" class="btn btn--outline" id="btn-view-iso" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Iso</button>
+            <button type="button" class="btn btn--outline" id="btn-view-side" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Side (Z)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-top" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Top (Y)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-inlet" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Inlet (X)</button>
+          </div>
+
+          <!-- XYZ Sliders -->
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#ef4444; font-weight:bold;">X</span>
+              <input type="range" id="cam-slider-x" min="-6" max="6" step="0.05" value="3" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#ef4444;">
+              <span id="cam-val-x" style="width:28px; text-align:right;">3.00</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#10b981; font-weight:bold;">Y</span>
+              <input type="range" id="cam-slider-y" min="-6" max="6" step="0.05" value="1.5" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#10b981;">
+              <span id="cam-val-y" style="width:28px; text-align:right;">1.50</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#3b82f6; font-weight:bold;">Z</span>
+              <input type="range" id="cam-slider-z" min="-6" max="6" step="0.05" value="3" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#3b82f6;">
+              <span id="cam-val-z" style="width:28px; text-align:right;">3.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Velocity Profile Chart (Plotly) -->
+      <div class="card">
+        <div class="card__header">
+          <div>
+            <div class="card__title">📈 Radial Velocity Profile</div>
+            <div class="card__subtitle">v(r) — parabolic or power-law velocity distribution</div>
+          </div>
+        </div>
+        <div id="profile-chart" style="height:240px;" role="img" aria-label="Radial velocity profile chart">
+          <div class="chart-placeholder" id="profile-placeholder">
+            <span>📈</span>
+            <p>Profile renders after calculation</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============ RIGHT PANEL: Calculations & Charts ============ -->
+    <aside class="dashboard-layout__right" id="right-panel" role="complementary" aria-label="Calculation results and stats">
+
+      <!-- KPI Cards stacked in a neat vertical grid -->
+      <div class="kpi-grid" id="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="kpi-card kpi-card--velocity" id="kpi-velocity">
+          <div class="kpi-label">Velocity</div>
+          <div class="kpi-value" id="kpi-velocity-val">—</div>
+          <div class="kpi-unit">m/s</div>
+        </div>
+        <div class="kpi-card kpi-card--reynolds" id="kpi-re">
+          <div class="kpi-label">Reynolds No.</div>
+          <div class="kpi-value" id="kpi-re-val">—</div>
+          <div class="kpi-unit">dimensionless</div>
+        </div>
+        <div class="kpi-card kpi-card--friction" id="kpi-friction">
+          <div class="kpi-label">Friction Darcy</div>
+          <div class="kpi-value" id="kpi-friction-val">—</div>
+          <div class="kpi-unit">f factor</div>
+        </div>
+        <div class="kpi-card kpi-card--dp-major" id="kpi-dp-major">
+          <div class="kpi-label">ΔP Major</div>
+          <div class="kpi-value" id="kpi-dp-major-val">—</div>
+          <div class="kpi-unit">Pa</div>
+        </div>
+        <div class="kpi-card kpi-card--dp-minor" id="kpi-dp-minor">
+          <div class="kpi-label">ΔP Minor</div>
+          <div class="kpi-value" id="kpi-dp-minor-val">—</div>
+          <div class="kpi-unit">Pa</div>
+        </div>
+        <div class="kpi-card kpi-card--dp-total kpi-card--highlight" id="kpi-dp-total" style="grid-column: span 2;">
+          <div class="kpi-label">Total ΔP</div>
+          <div class="kpi-value" id="kpi-dp-total-val">—</div>
+          <div class="kpi-unit">bar</div>
+        </div>
+      </div>
+
+      <!-- Detailed Results Table -->
+      <div class="card" id="results-table-card">
+        <div class="card__title" style="margin-bottom:12px;">📋 Detailed Results</div>
+        <table class="results-table" id="results-table" aria-label="Numerical results">
+          <tbody>
+            <tr><td>Velocity</td><td id="tbl-velocity">—</td></tr>
+            <tr><td>Reynolds No.</td><td id="tbl-re">—</td></tr>
+            <tr><td>Flow Regime</td><td id="tbl-regime">—</td></tr>
+            <tr><td>Friction Factor (f)</td><td id="tbl-ff">—</td></tr>
+            <tr><td>Friction Method</td><td id="tbl-ffmethod">—</td></tr>
+            <tr><td>ΔP Major (Pa)</td><td id="tbl-dp-major">—</td></tr>
+            <tr><td>ΔP Minor (Pa)</td><td id="tbl-dp-minor">—</td></tr>
+            <tr><td>ΔP Total (Pa)</td><td id="tbl-dp-total-pa">—</td></tr>
+            <tr class="results-table__highlight"><td>ΔP Total (bar)</td><td id="tbl-dp-total-bar">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Plotly Chart — Pressure Drop vs Flow Rate -->
+      <div class="card">
+        <div class="card__header">
+          <div>
+            <div class="card__title">📊 Pressure Drop vs. Q</div>
+            <div class="card__subtitle">Sweep up to 3× flow rate</div>
+          </div>
+          <div id="regime-badge-chart"></div>
+        </div>
+        <div id="plotly-chart" style="height:220px; border-radius:8px; overflow:hidden;"
+             role="img" aria-label="Pressure drop vs flow rate chart">
+          <div class="chart-placeholder" id="chart-placeholder">
+            <span>📊</span>
+            <p>Submit parameters to render chart</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Symbolic Hagen-Poiseuille (laminar only) -->
+      <div class="card" id="hp-card" style="display:none;">
+        <div class="card__header">
+          <div class="card__title">∑ Hagen-Poiseuille (Laminar — Exact)</div>
+        </div>
+        <div class="hp-formula-box" id="hp-formula" role="math" aria-label="Hagen-Poiseuille formula">
+          <!-- MathJax renders here -->
+        </div>
+      </div>
+
+    </aside>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE STYLES
+     ============================================================ -->
+<style>
+  .fluids-dashboard { max-width: 1650px; margin: 0 auto; }
+
+  /* Hagen-Poiseuille formula */
+  .hp-formula-box {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    font-size: 1.2rem;
+    text-align: center;
+    color: var(--accent-info);
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Warnings */
+  .warning-item {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: var(--radius-sm);
+    font-size: 0.78rem;
+    color: #fcd34d;
+    margin-bottom: 6px;
+  }
+</style>
+
+<!-- ============================================================
+     JAVASCRIPT — API call + Plotly + Three.js (inline for Django)
+     In production: imported via Vite bundle from frontend/src/pages/fluids.js
+     ============================================================ -->
+
+{% load static %}
+<!-- Local static files for standalone Django serving (extremely fast & offline support) -->
+<script src="{% static 'core/vendor/plotly.min.js' %}"></script>
+<script src="{% static 'core/vendor/three.min.js' %}"></script>
+<script src="{% static 'core/vendor/OrbitControls.js' %}"></script>
+
+<script>
+/* =================================================================
+   FLUIDS DASHBOARD — JavaScript Controller
+   
+   Modules:
+     1. API Client      — fetch wrapper with CSRF + error handling
+     2. Form Manager    — reads inputs, manages preset selector
+     3. Plotly Charts   — pressure-drop sweep + velocity profile
+     4. Three.js Scene  — 3D pipe with particle animation
+     5. UI Updates      — KPI cards, table, badges, warnings
+   ================================================================= */
+
+// -----------------------------------------------------------------
+// 1. API CLIENT
+// -----------------------------------------------------------------
+const API = {
+  baseUrl: '/api/fluids',
+  csrfToken: document.querySelector('meta[name="csrf-token"]')?.content,
+
+  async post(endpoint, data) {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': this.csrfToken,
+      },
+      body: JSON.stringify(data),
+    });
+    const json = await response.json();
+    if (!response.ok) throw { status: response.status, ...json };
+    return json;
+  },
+
+  async get(endpoint) {
+    const response = await fetch(`${this.baseUrl}${endpoint}`);
+    const json = await response.json();
+    if (!response.ok) throw json;
+    return json;
+  },
+};
+
+// -----------------------------------------------------------------
+// 2. FORM MANAGER
+// -----------------------------------------------------------------
+const FormManager = {
+  form: document.getElementById('pipe-flow-form'),
+  presetSelect: document.getElementById('fluid-preset'),
+  calculateBtn: document.getElementById('calculate-btn'),
+
+  async init() {
+    // Load schema to populate presets
+    try {
+      const schema = await API.get('/pipe-flow/schema/');
+      this.populatePresets(schema.data.preset_fluids || []);
+    } catch (e) {
+      console.warn('Schema load failed:', e);
+    }
+
+    // Preset selector listener
+    this.presetSelect.addEventListener('change', (e) => {
+      const presets = JSON.parse(this.presetSelect.dataset.presets || '[]');
+      const preset  = presets.find(p => p.name === e.target.value);
+      if (preset) {
+        document.getElementById('density_kg_m3').value  = preset.density;
+        document.getElementById('viscosity_mpa_s').value = preset.viscosity;
+        showToast(`Loaded: ${preset.name}`, 'info', 2500);
+      }
+    });
+
+    // Form submit
+    this.form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.handleSubmit();
+    });
+  },
+
+  populatePresets(presets) {
+    this.presetSelect.dataset.presets = JSON.stringify(presets);
+    presets.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.name;
+      opt.textContent = p.name;
+      this.presetSelect.appendChild(opt);
+    });
+  },
+
+  getFormData() {
+    return {
+      diameter_mm:           parseFloat(document.getElementById('diameter_mm').value),
+      length_m:              parseFloat(document.getElementById('length_m').value),
+      roughness_mm:          parseFloat(document.getElementById('roughness_mm').value),
+      density_kg_m3:         parseFloat(document.getElementById('density_kg_m3').value),
+      viscosity_mpa_s:       parseFloat(document.getElementById('viscosity_mpa_s').value),
+      flow_rate_lpm:         parseFloat(document.getElementById('flow_rate_lpm').value),
+      num_elbows_90:         parseInt(document.getElementById('num_elbows_90').value) || 0,
+      num_gate_valves_open:  parseInt(document.getElementById('num_gate_valves_open').value) || 0,
+      num_check_valves:      parseInt(document.getElementById('num_check_valves').value) || 0,
+    };
+  },
+
+  setLoading(loading) {
+    this.calculateBtn.disabled = loading;
+    document.getElementById('btn-text').textContent = loading ? 'Computing…' : 'Calculate';
+    document.getElementById('btn-icon').textContent = loading ? '⏳' : '▶';
+  },
+
+  async handleSubmit() {
+    const data = this.getFormData();
+
+    // Basic client-side validation
+    if (isNaN(data.diameter_mm) || data.diameter_mm <= 0) {
+      showToast('Diameter must be a positive number.', 'error');
+      return;
+    }
+    if (isNaN(data.flow_rate_lpm) || data.flow_rate_lpm < 0) {
+      showToast('Flow rate must be non-negative.', 'error');
+      return;
+    }
+
+    this.setLoading(true);
+    showLoading('Running Darcy-Weisbach analysis…');
+
+    try {
+      const response = await API.post('/pipe-flow/calculate/', data);
+      const result   = response.data;
+
+      UIUpdater.updateAll(result);
+      PlotlyCharts.renderPressureDrop(result);
+      PlotlyCharts.renderVelocityProfile(result);
+      ThreePipe.updateParticles(result);
+
+      showToast('Calculation complete!', 'success');
+    } catch (err) {
+      console.error('Calculation error:', err);
+      const msg = err?.errors
+        ? Object.entries(err.errors).map(([k, v]) => `${k}: ${v}`).join(' | ')
+        : (err?.message || 'Server error');
+      showToast(`Error: ${msg}`, 'error', 6000);
+    } finally {
+      this.setLoading(false);
+      hideLoading();
+    }
+  },
+};
+
+// -----------------------------------------------------------------
+// 3. UI UPDATER
+// -----------------------------------------------------------------
+const UIUpdater = {
+  updateAll(result) {
+    // Update Workbench Title tag regime dynamically
+    const statusTag = document.getElementById('workbench-status');
+    if (statusTag) {
+      statusTag.textContent = result.flow_regime;
+      statusTag.className = 'regime-tag ' + (
+        result.flow_regime === 'Laminar' ? 'regime-tag--laminar' :
+        result.flow_regime === 'Turbulent' ? 'regime-tag--turbulent' : 'regime-tag--transition'
+      );
+    }
+
+    // KPI Cards
+    this.set('kpi-velocity-val', result.velocity_m_s.toFixed(3));
+    this.set('kpi-re-val',       this.formatNumber(result.reynolds_number));
+    this.set('kpi-friction-val', result.friction_factor.toFixed(6));
+    this.set('kpi-dp-major-val', this.formatNumber(result.pressure_drop_major_pa));
+    this.set('kpi-dp-minor-val', this.formatNumber(result.pressure_drop_minor_pa));
+    this.set('kpi-dp-total-val', result.pressure_drop_total_bar.toFixed(5));
+
+    // Top badges
+    this.set('regime-value', result.flow_regime);
+    this.set('re-value', this.formatNumber(result.reynolds_number));
+    this.set('dp-value', result.pressure_drop_total_bar.toFixed(4) + ' bar');
+
+    // Results Table
+    this.set('tbl-velocity',  result.velocity_m_s.toFixed(4) + ' m/s');
+    this.set('tbl-re',        this.formatNumber(result.reynolds_number));
+    this.set('tbl-regime',    result.flow_regime);
+    this.set('tbl-ff',        result.friction_factor.toFixed(8));
+    this.set('tbl-ffmethod',  result.friction_method);
+    this.set('tbl-dp-major',  this.formatNumber(result.pressure_drop_major_pa));
+    this.set('tbl-dp-minor',  this.formatNumber(result.pressure_drop_minor_pa));
+    this.set('tbl-dp-total-pa', this.formatNumber(result.pressure_drop_total_pa));
+    this.set('tbl-dp-total-bar', result.pressure_drop_total_bar.toFixed(6));
+
+    // Hagen-Poiseuille (laminar only)
+    const hpCard = document.getElementById('hp-card');
+    if (result.hagen_poiseuille_exact && result.flow_regime === 'Laminar') {
+      hpCard.style.display = 'block';
+      document.getElementById('hp-formula').innerHTML =
+        `\\[ \\Delta P = ${result.hagen_poiseuille_exact} \\text{ Pa} \\]`;
+      if (window.MathJax) MathJax.typesetPromise([document.getElementById('hp-formula')]);
+    } else {
+      hpCard.style.display = 'none';
+    }
+
+    // Warnings
+    const wContainer = document.getElementById('warnings-container');
+    if (result.warnings && result.warnings.length > 0) {
+      wContainer.style.display = 'block';
+      wContainer.innerHTML = result.warnings
+        .map(w => `<div class="warning-item"><span>⚠</span><span>${w}</span></div>`)
+        .join('');
+    } else {
+      wContainer.style.display = 'none';
+    }
+  },
+
+  set(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  },
+
+  formatNumber(n) {
+    if (n === undefined || n === null) return '—';
+    if (Math.abs(n) >= 1e6)  return n.toExponential(3);
+    if (Math.abs(n) >= 1000) return n.toLocaleString('en-US', {maximumFractionDigits: 0});
+    return n.toFixed(2);
+  },
+};
+
+// -----------------------------------------------------------------
+// 4. PLOTLY CHARTS
+// -----------------------------------------------------------------
+const PLOTLY_DARK_LAYOUT = {
+  paper_bgcolor: 'transparent',
+  plot_bgcolor:  '#0d1526',
+  font: { family: 'Inter, sans-serif', color: '#94a3b8', size: 11 },
+  margin: { t: 10, r: 16, b: 48, l: 64 },
+  xaxis: {
+    gridcolor: 'rgba(255,255,255,0.05)',
+    zerolinecolor: 'rgba(255,255,255,0.1)',
+    tickfont: { family: 'JetBrains Mono, monospace', size: 10 },
+  },
+  yaxis: {
+    gridcolor: 'rgba(255,255,255,0.05)',
+    zerolinecolor: 'rgba(255,255,255,0.1)',
+    tickfont: { family: 'JetBrains Mono, monospace', size: 10 },
+  },
+  legend: { bgcolor: 'rgba(0,0,0,0)', borderwidth: 0 },
+};
+
+const PLOTLY_CONFIG = {
+  responsive: true,
+  displayModeBar: true,
+  modeBarButtonsToRemove: ['toImage', 'sendDataToCloud'],
+  displaylogo: false,
+};
+
+const PlotlyCharts = {
+  pressureChartRendered: false,
+  profileChartRendered: false,
+
+  renderPressureDrop(result) {
+    const qLPM    = result.sweep_flow_rates_m3_s.map(q => q * 60000); // m³/s → L/min
+    const dpBar   = result.sweep_pressure_drops_pa.map(p => p / 1e5);  // Pa → bar
+
+    // Operating point marker
+    const opQ  = result.velocity_m_s * Math.PI * 0.25;  // rough estimate from velocity
+    const opDp = result.pressure_drop_total_bar;
+
+    const traces = [
+      {
+        x: qLPM, y: dpBar,
+        mode: 'lines',
+        name: 'ΔP vs Q',
+        line: { color: '#3b82f6', width: 2.5, shape: 'spline' },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(59,130,246,0.05)',
+      },
+      {
+        // Current operating point
+        x: [parseFloat(document.getElementById('flow_rate_lpm').value)],
+        y: [opDp],
+        mode: 'markers',
+        name: 'Operating Point',
+        marker: { color: '#ef4444', size: 10, symbol: 'circle', line: { color: '#fff', width: 1.5 } },
+      },
+    ];
+
+    const layout = {
+      ...PLOTLY_DARK_LAYOUT,
+      xaxis: {
+        ...PLOTLY_DARK_LAYOUT.xaxis,
+        title: { text: 'Flow Rate (L/min)', font: { size: 11, color: '#64748b' } },
+      },
+      yaxis: {
+        ...PLOTLY_DARK_LAYOUT.yaxis,
+        title: { text: 'Pressure Drop (bar)', font: { size: 11, color: '#64748b' } },
+      },
+    };
+
+    document.getElementById('chart-placeholder')?.remove();
+
+    if (!this.pressureChartRendered) {
+      Plotly.newPlot('plotly-chart', traces, layout, PLOTLY_CONFIG);
+      this.pressureChartRendered = true;
+    } else {
+      Plotly.react('plotly-chart', traces, layout, PLOTLY_CONFIG);
+    }
+  },
+
+  renderVelocityProfile(result) {
+    const traces = [
+      {
+        x: result.velocity_profile,
+        y: result.radial_positions,
+        mode: 'lines',
+        name: 'v(r)',
+        line: { color: '#8b5cf6', width: 2.5, shape: 'spline' },
+        fill: 'tozerox',
+        fillcolor: 'rgba(139,92,246,0.08)',
+      },
+    ];
+
+    const layout = {
+      ...PLOTLY_DARK_LAYOUT,
+      margin: { t: 10, r: 16, b: 48, l: 56 },
+      xaxis: {
+        ...PLOTLY_DARK_LAYOUT.xaxis,
+        title: { text: 'Velocity (m/s)', font: { size: 10, color: '#64748b' } },
+      },
+      yaxis: {
+        ...PLOTLY_DARK_LAYOUT.yaxis,
+        title: { text: 'r/R (0=centre, 1=wall)', font: { size: 10, color: '#64748b' } },
+        range: [0, 1],
+        autorange: false,
+      },
+    };
+
+    document.getElementById('profile-placeholder')?.remove();
+
+    if (!this.profileChartRendered) {
+      Plotly.newPlot('profile-chart', traces, layout, PLOTLY_CONFIG);
+      this.profileChartRendered = true;
+    } else {
+      Plotly.react('profile-chart', traces, layout, PLOTLY_CONFIG);
+    }
+  },
+};
+
+// -----------------------------------------------------------------
+// 5. THREE.JS — 3D PIPE FLOW ANIMATION
+// -----------------------------------------------------------------
+const ThreePipe = {
+  scene:     null,
+  camera:    null,
+  renderer:  null,
+  controls:  null,
+  particles: null,
+  animating: true,
+  velocities: [],
+  maxVelocity: 1,
+
+  // Camera state for transitions & auto-orbit
+  targetCameraPos: null,
+  targetLookAt: new THREE.Vector3(0, 0, 0),
+  transitioning: false,
+  autoOrbit: false,
+
+  init() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    // Scene
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x050b18);
+
+    // Camera (perspective, looking along pipe axis)
+    this.camera = new THREE.PerspectiveCamera(50, canvas.offsetWidth / canvas.offsetHeight, 0.01, 100);
+    this.camera.position.set(3, 1.5, 3);
+    this.camera.lookAt(0, 0, 0);
+
+    // Renderer
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
+
+    // Orbit Controls for dynamic XYZ rotation/zoom/pan
+    if (typeof THREE.OrbitControls !== 'undefined') {
+      this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+      this.controls.enableDamping = true;
+      this.controls.dampingFactor = 0.05;
+      this.controls.minDistance = 1;
+      this.controls.maxDistance = 10;
+    }
+
+    // Ambient + directional light
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+    const dirLight = new THREE.DirectionalLight(0x6699ff, 1.2);
+    dirLight.position.set(2, 4, 3);
+    this.scene.add(dirLight);
+
+    // Pipe mesh (transparent cylinder)
+    const pipeGeo = new THREE.CylinderGeometry(0.5, 0.5, 4, 32, 1, true);
+    const pipeMat = new THREE.MeshPhongMaterial({
+      color: 0x1e3a5f,
+      transparent: true,
+      opacity: 0.25,
+      side: THREE.DoubleSide,
+      wireframe: false,
+    });
+    const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+    pipe.rotation.z = Math.PI / 2;  // Horizontal pipe (along X axis)
+    this.scene.add(pipe);
+
+    // Pipe end caps (rings)
+    const ringGeo = new THREE.TorusGeometry(0.5, 0.02, 12, 32);
+    const ringMat = new THREE.MeshPhongMaterial({ color: 0x3b82f6, opacity: 0.6, transparent: true });
+    [-2, 2].forEach(x => {
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.x = x;
+      ring.rotation.y = Math.PI / 2;
+      this.scene.add(ring);
+    });
+
+    // Set up DOM elements for camera controls
+    const orbitCheckbox = document.getElementById('auto-orbit');
+    const sliderX = document.getElementById('cam-slider-x');
+    const sliderY = document.getElementById('cam-slider-y');
+    const sliderZ = document.getElementById('cam-slider-z');
+    const valX = document.getElementById('cam-val-x');
+    const valY = document.getElementById('cam-val-y');
+    const valZ = document.getElementById('cam-val-z');
+
+    // Auto-Orbit toggle
+    if (orbitCheckbox) {
+      orbitCheckbox.addEventListener('change', (e) => {
+        this.autoOrbit = e.target.checked;
+        if (this.autoOrbit) {
+          this.transitioning = false;
+          this.targetCameraPos = null;
+        }
+      });
+    }
+
+    // Camera preset helper function
+    const triggerPreset = (x, y, z) => {
+      this.targetCameraPos = new THREE.Vector3(x, y, z);
+      this.transitioning = true;
+      this.autoOrbit = false;
+      if (orbitCheckbox) orbitCheckbox.checked = false;
+    };
+
+    document.getElementById('btn-view-iso')?.addEventListener('click', () => triggerPreset(3, 1.5, 3));
+    document.getElementById('btn-view-side')?.addEventListener('click', () => triggerPreset(0, 0, 4));
+    document.getElementById('btn-view-top')?.addEventListener('click', () => triggerPreset(0, 4.2, 0.01)); // slight offset to prevent Euler gimbal lock
+    document.getElementById('btn-view-inlet')?.addEventListener('click', () => triggerPreset(-3.5, 0, 0));
+
+    // Manual slider inputs
+    const handleSliderChange = () => {
+      if (this.autoOrbit) {
+        this.autoOrbit = false;
+        if (orbitCheckbox) orbitCheckbox.checked = false;
+      }
+      this.transitioning = false;
+      this.targetCameraPos = null;
+      this.camera.position.set(
+        parseFloat(sliderX.value),
+        parseFloat(sliderY.value),
+        parseFloat(sliderZ.value)
+      );
+      this.camera.lookAt(0, 0, 0);
+      if (this.controls) this.controls.target.set(0, 0, 0);
+      
+      valX.textContent = parseFloat(sliderX.value).toFixed(2);
+      valY.textContent = parseFloat(sliderY.value).toFixed(2);
+      valZ.textContent = parseFloat(sliderZ.value).toFixed(2);
+    };
+
+    [sliderX, sliderY, sliderZ].forEach(slider => {
+      slider?.addEventListener('input', handleSliderChange);
+    });
+
+    // Initial particles with default (uniform) velocities
+    this.createParticles(1.0, 'Laminar');
+
+    // Start animation loop
+    this.animate();
+
+    // Toggle button
+    document.getElementById('toggle-animation').addEventListener('click', (e) => {
+      this.animating = !this.animating;
+      e.target.textContent = this.animating ? '⏸ Pause' : '▶ Resume';
+      if (this.animating) this.animate();
+    });
+
+    // Resize handler
+    window.addEventListener('resize', () => this.onResize());
+  },
+
+  createParticles(maxVel, regime) {
+    if (this.particles) {
+      this.scene.remove(this.particles);
+      this.particles.geometry.dispose();
+    }
+
+    const N    = 600;
+    const R    = 0.47;  // Pipe inner radius in scene units
+    const L    = 4.0;   // Pipe length in scene units
+
+    const positions = new Float32Array(N * 3);
+    const colors    = new Float32Array(N * 3);
+    this.velocities = new Array(N);
+
+    for (let i = 0; i < N; i++) {
+      // Random position inside cylinder
+      const r     = R * Math.sqrt(Math.random());
+      const theta = Math.random() * Math.PI * 2;
+      const x     = (Math.random() - 0.5) * L;
+
+      positions[i * 3]     = x;
+      positions[i * 3 + 1] = r * Math.cos(theta);
+      positions[i * 3 + 2] = r * Math.sin(theta);
+
+      // Velocity from profile (normalised r/R)
+      const rNorm = r / R;
+      let vNorm;
+      if (regime === 'Laminar') {
+        vNorm = 1.0 - rNorm * rNorm;  // parabolic
+      } else {
+        vNorm = Math.pow(Math.max(0, 1 - rNorm), 1/7);  // power law
+      }
+
+      this.velocities[i] = vNorm * maxVel;
+
+      // Color: blue (slow) → cyan → green → yellow → red (fast)
+      const t = vNorm;
+      const c = new THREE.Color().setHSL(0.65 - t * 0.65, 1.0, 0.55);
+      colors[i * 3]     = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
+
+    const mat = new THREE.PointsMaterial({
+      size: 0.035,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.85,
+      sizeAttenuation: true,
+    });
+
+    this.particles = new THREE.Points(geo, mat);
+    this.scene.add(this.particles);
+    this.maxVelocity = maxVel;
+  },
+
+  updateParticles(result) {
+    if (!this.scene) return;
+    // Re-build particle system from actual calculation result
+    const maxV = result.velocity_m_s > 0 ? result.velocity_m_s : 1.0;
+    this.createParticles(maxV, result.flow_regime);
+  },
+
+  animate() {
+    if (!this.animating) return;
+    requestAnimationFrame(() => this.animate());
+
+    // 1. Handle auto-orbit rotation
+    if (this.autoOrbit) {
+      const time = Date.now() * 0.0005;
+      const radius = 4.2;
+      this.camera.position.x = radius * Math.cos(time);
+      this.camera.position.z = radius * Math.sin(time);
+      this.camera.position.y = 1.2 + 0.6 * Math.sin(time * 0.5);
+      this.camera.lookAt(0, 0, 0);
+      if (this.controls) this.controls.target.set(0, 0, 0);
+    }
+
+    // 2. Handle preset transitions (lerp)
+    if (this.transitioning && this.targetCameraPos) {
+      this.camera.position.lerp(this.targetCameraPos, 0.1);
+      this.camera.lookAt(this.targetLookAt);
+      if (this.controls) this.controls.target.copy(this.targetLookAt);
+      
+      // Stop transitioning if we are close enough
+      if (this.camera.position.distanceTo(this.targetCameraPos) < 0.01) {
+        this.camera.position.copy(this.targetCameraPos);
+        this.transitioning = false;
+        this.targetCameraPos = null;
+      }
+    }
+
+    if (this.controls) {
+      this.controls.update();
+    }
+
+    // 3. Sync sliders with the actual camera position
+    const sliderX = document.getElementById('cam-slider-x');
+    const sliderY = document.getElementById('cam-slider-y');
+    const sliderZ = document.getElementById('cam-slider-z');
+    const valX = document.getElementById('cam-val-x');
+    const valY = document.getElementById('cam-val-y');
+    const valZ = document.getElementById('cam-val-z');
+
+    if (sliderX && sliderY && sliderZ) {
+      if (document.activeElement !== sliderX) {
+        sliderX.value = this.camera.position.x;
+        if (valX) valX.textContent = this.camera.position.x.toFixed(2);
+      }
+      if (document.activeElement !== sliderY) {
+        sliderY.value = this.camera.position.y;
+        if (valY) valY.textContent = this.camera.position.y.toFixed(2);
+      }
+      if (document.activeElement !== sliderZ) {
+        sliderZ.value = this.camera.position.z;
+        if (valZ) valZ.textContent = this.camera.position.z.toFixed(2);
+      }
+    }
+
+    if (this.particles) {
+      const pos = this.particles.geometry.attributes.position;
+      const L   = 4.0;
+      const dt  = 0.006;
+
+      for (let i = 0; i < pos.count; i++) {
+        // Move particle along pipe axis (X direction)
+        pos.array[i * 3] += this.velocities[i] * dt;
+
+        // Wrap around pipe length
+        if (pos.array[i * 3] > L / 2) {
+          pos.array[i * 3] = -L / 2;
+        }
+      }
+      pos.needsUpdate = true;
+
+      // Slow pipe rotation for visual depth
+      this.particles.rotation.x += 0.001;
+    }
+
+    this.renderer.render(this.scene, this.camera);
+  },
+
+  onResize() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || !this.renderer) return;
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h);
+  },
+};
+
+// -----------------------------------------------------------------
+// INIT on DOMContentLoaded
+// -----------------------------------------------------------------
+document.addEventListener('DOMContentLoaded', async () => {
+  await FormManager.init();
+  ThreePipe.init();
+});
+</script>
+{% endblock %}
