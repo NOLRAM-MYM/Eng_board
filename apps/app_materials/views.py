@@ -1,8 +1,11 @@
-"""apps/app_materials/views.py — scaffold"""
+"""apps/app_materials/views.py"""
 from django.views.generic import TemplateView
+from rest_framework import status
 from rest_framework.views import APIView
-from rest_framework.response import Response
-from apps.core.responses import success_response
+
+from apps.core.responses import error_response, success_response
+
+from .serializers import BeamDeflectionInputSerializer
 
 
 class MaterialsPageView(TemplateView):
@@ -14,14 +17,24 @@ class BeamDeflectionView(APIView):
 
     def post(self, request, *args, **kwargs):
         from .services import BeamDeflectionService
-        # TODO: add serializer validation
-        data = request.data
-        service = BeamDeflectionService(
-            length_m            = float(data.get('length_m', 5.0)),
-            youngs_modulus_gpa  = float(data.get('youngs_modulus_gpa', 200.0)),
-            second_moment_m4    = float(data.get('second_moment_m4', 8.33e-6)),
-            load_kn             = float(data.get('load_kn', 50.0)),
-            load_type           = data.get('load_type', 'point_centre'),
-        )
-        result = service.compute()
+
+        serializer = BeamDeflectionInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return error_response(
+                message="Invalid beam parameters.",
+                code="validation_error",
+                errors=serializer.errors,
+                http_status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            service = BeamDeflectionService(**serializer.to_service_kwargs())
+            result = service.compute()
+        except ValueError as exc:
+            return error_response(
+                message=str(exc),
+                code="calculation_error",
+                http_status=status.HTTP_400_BAD_REQUEST,
+            )
+
         return success_response(result)

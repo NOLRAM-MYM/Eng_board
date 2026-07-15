@@ -14,8 +14,8 @@
   <!-- Page Header -->
   <div class="page-header">
     <div>
-      <h1 class="page-header__title">Pipe Flow Analysis</h1>
-      <p class="page-header__desc">
+      <h1 class="page-header__title" data-i18n="fluids-title">Pipe Flow Analysis</h1>
+      <p class="page-header__desc" data-i18n="fluids-desc">
         Darcy-Weisbach framework · Colebrook-White friction · Reynolds classification ·
         Velocity profile · Plotly chart · Three.js 3D simulation
       </p>
@@ -33,18 +33,112 @@
     </div>
   </div>
 
-  <!-- Main Layout: 3-column grid -->
-  <div class="dashboard-layout">
+  <!-- ============ FULLSCREEN SIMULATION: 3D pipe + velocity profile ============ -->
+  <section class="sim-fullscreen" aria-label="3D simulation and velocity profile">
 
-    <!-- ============ LEFT PANEL: Input Form ============ -->
-    <aside class="dashboard-layout__left" id="input-panel" role="complementary" aria-label="Calculation inputs">
+    <!-- Three.js 3D Pipe Visualisation -->
+    <div class="card card--glow">
+      <div class="card__header">
+        <div>
+          <div class="card__title" style="display:flex; align-items:center; gap:8px;">
+            <span>🌀 3D Pipe Flow Workbench</span>
+            <span class="regime-tag" id="workbench-status" style="font-size:0.65rem; padding:2px 6px;">Active</span>
+          </div>
+          <div class="card__subtitle">Interactive particle velocity field and camera viewport control</div>
+        </div>
+        <button class="btn btn--outline" id="toggle-animation" style="padding:6px 12px; font-size:0.75rem;">
+          ⏸ Pause
+        </button>
+      </div>
+
+      <div class="sim-canvas-wrap">
+        <canvas id="three-canvas" aria-label="3D animated pipe flow simulation"
+                style="border-radius:8px; background:#050b18;">
+        </canvas>
+
+        <!-- 3D Camera Controls (floating overlay on the canvas corner) -->
+        <div class="camera-controls camera-controls--overlay">
+          <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span>🎥 Camera Viewpoint (XYZ)</span>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.72rem; color:var(--text-muted);">
+              <input type="checkbox" id="auto-orbit" style="cursor:pointer; accent-color:var(--accent-primary);"> Auto-Orbit
+            </label>
+          </div>
+
+          <!-- View Presets -->
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:10px;">
+            <button type="button" class="btn btn--outline" id="btn-view-iso" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Iso</button>
+            <button type="button" class="btn btn--outline" id="btn-view-side" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Side (Z)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-top" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Top (Y)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-inlet" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Inlet (X)</button>
+          </div>
+
+          <!-- XYZ Sliders -->
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#ef4444; font-weight:bold;">X</span>
+              <input type="range" id="cam-slider-x" min="-6" max="6" step="0.05" value="3" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#ef4444;">
+              <span id="cam-val-x" style="width:28px; text-align:right;">3.00</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#10b981; font-weight:bold;">Y</span>
+              <input type="range" id="cam-slider-y" min="-6" max="6" step="0.05" value="1.5" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#10b981;">
+              <span id="cam-val-y" style="width:28px; text-align:right;">1.50</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#3b82f6; font-weight:bold;">Z</span>
+              <input type="range" id="cam-slider-z" min="-6" max="6" step="0.05" value="3" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#3b82f6;">
+              <span id="cam-val-z" style="width:28px; text-align:right;">3.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="velocity-legend" aria-label="Velocity colour scale">
+        <span style="color:#3b82f6">● Low</span>
+        <div class="legend-gradient"></div>
+        <span style="color:#ef4444">● High</span>
+      </div>
+    </div>
+
+    <!-- Velocity Profile Chart (Plotly) -->
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <div class="card__title">📈 Radial Velocity Profile</div>
+          <div class="card__subtitle">v(r) — parabolic or power-law velocity distribution</div>
+        </div>
+      </div>
+      <div id="profile-chart" style="height:240px;" role="img" aria-label="Radial velocity profile chart">
+        <div class="chart-placeholder" id="profile-placeholder">
+          <span>📈</span>
+          <p>Profile renders after calculation</p>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============ FLOATING PANELS: Config (left) / Results (right) ============ -->
+  <button class="fab fab--config" id="fab-config" data-panel="config" aria-label="Open configuration" aria-expanded="false" aria-controls="config-panel">⚙️</button>
+  <button class="fab fab--results" id="fab-results" data-panel="results" aria-label="Open results" aria-expanded="false" aria-controls="results-panel">📊</button>
+
+  <aside class="floating-panel floating-panel--left" id="config-panel" role="dialog" aria-label="Configuration panel" aria-hidden="true">
+    <div class="floating-panel__header">
+      <span class="floating-panel__title">⚙️ Configuration</span>
+      <div class="floating-panel__actions">
+        <button class="floating-panel__pin" id="pin-config" aria-label="Pin panel" aria-pressed="false">📌</button>
+        <button class="floating-panel__close" aria-label="Close">✕</button>
+      </div>
+    </div>
+    <div class="floating-panel__body">
 
       <!-- Fluid Preset Selector -->
-      <div class="card" style="margin-bottom:16px;">
+      <div class="card">
         <div class="card__header">
           <div>
-            <div class="card__title">Quick Presets</div>
-            <div class="card__subtitle">Load common fluid properties</div>
+            <div class="card__title" data-i18n="fluids-presets-title">Quick Presets</div>
+            <div class="card__subtitle" data-i18n="fluids-presets-sub">Load common fluid properties</div>
           </div>
         </div>
         <div class="form-group" style="margin-bottom:0">
@@ -58,8 +152,8 @@
       <form class="card" id="pipe-flow-form" novalidate aria-label="Pipe flow parameters">
         <div class="card__header">
           <div>
-            <div class="card__title">Pipe &amp; Flow Parameters</div>
-            <div class="card__subtitle">Enter values in the units shown</div>
+            <div class="card__title" data-i18n="fluids-params-title">Pipe &amp; Flow Parameters</div>
+            <div class="card__subtitle" data-i18n="fluids-params-sub">Enter values in the units shown</div>
           </div>
         </div>
 
@@ -153,94 +247,27 @@
         <div id="warnings-container" style="display:none; margin-top:12px;" role="alert"></div>
       </form>
 
-    </aside>
+    </div>
+  </aside>
 
-    <!-- ============ CENTER PANEL: 3D Visualization & Profile ============ -->
-    <section class="dashboard-layout__center" aria-label="3D simulation and velocity profile">
-
-      <!-- Three.js 3D Pipe Visualisation -->
-      <div class="card card--glow">
-        <div class="card__header">
-          <div>
-            <div class="card__title" style="display:flex; align-items:center; gap:8px;">
-              <span>🌀 3D Pipe Flow Workbench</span>
-              <span class="regime-tag" id="workbench-status" style="font-size:0.65rem; padding:2px 6px;">Active</span>
-            </div>
-            <div class="card__subtitle">Interactive particle velocity field and camera viewport control</div>
-          </div>
-          <button class="btn btn--outline" id="toggle-animation" style="padding:6px 12px; font-size:0.75rem;">
-            ⏸ Pause
-          </button>
-        </div>
-        
-        <canvas id="three-canvas" aria-label="3D animated pipe flow simulation"
-                style="width:100%; height:420px; border-radius:8px; display:block; background:#050b18;">
-        </canvas>
-        
-        <div class="velocity-legend" aria-label="Velocity colour scale">
-          <span style="color:#3b82f6">● Low</span>
-          <div class="legend-gradient"></div>
-          <span style="color:#ef4444">● High</span>
-        </div>
-
-        <!-- 3D Camera Controls -->
-        <div class="camera-controls" style="margin-top:16px; padding:12px; background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md);">
-          <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-            <span>🎥 Camera Viewpoint (XYZ)</span>
-            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.72rem; color:var(--text-muted);">
-              <input type="checkbox" id="auto-orbit" style="cursor:pointer; accent-color:var(--accent-primary);"> Auto-Orbit
-            </label>
-          </div>
-          
-          <!-- View Presets -->
-          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:10px;">
-            <button type="button" class="btn btn--outline" id="btn-view-iso" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Iso</button>
-            <button type="button" class="btn btn--outline" id="btn-view-side" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Side (Z)</button>
-            <button type="button" class="btn btn--outline" id="btn-view-top" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Top (Y)</button>
-            <button type="button" class="btn btn--outline" id="btn-view-inlet" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Inlet (X)</button>
-          </div>
-
-          <!-- XYZ Sliders -->
-          <div style="display:flex; flex-direction:column; gap:6px;">
-            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
-              <span style="width:12px; color:#ef4444; font-weight:bold;">X</span>
-              <input type="range" id="cam-slider-x" min="-6" max="6" step="0.05" value="3" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#ef4444;">
-              <span id="cam-val-x" style="width:28px; text-align:right;">3.00</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
-              <span style="width:12px; color:#10b981; font-weight:bold;">Y</span>
-              <input type="range" id="cam-slider-y" min="-6" max="6" step="0.05" value="1.5" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#10b981;">
-              <span id="cam-val-y" style="width:28px; text-align:right;">1.50</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
-              <span style="width:12px; color:#3b82f6; font-weight:bold;">Z</span>
-              <input type="range" id="cam-slider-z" min="-6" max="6" step="0.05" value="3" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#3b82f6;">
-              <span id="cam-val-z" style="width:28px; text-align:right;">3.00</span>
-            </div>
-          </div>
-        </div>
+  <aside class="floating-panel floating-panel--right" id="results-panel" role="dialog" aria-label="Results panel" aria-hidden="true">
+    <div class="floating-panel__header">
+      <span class="floating-panel__title">📊 Results</span>
+      <div class="floating-panel__actions">
+        <button class="floating-panel__pin" id="pin-results" aria-label="Pin panel" aria-pressed="false">📌</button>
+        <button class="floating-panel__export" id="export-results">⬇ Export</button>
+        <button class="floating-panel__close" aria-label="Close">✕</button>
       </div>
+    </div>
+    <div class="floating-panel__body">
 
-      <!-- Velocity Profile Chart (Plotly) -->
-      <div class="card">
-        <div class="card__header">
-          <div>
-            <div class="card__title">📈 Radial Velocity Profile</div>
-            <div class="card__subtitle">v(r) — parabolic or power-law velocity distribution</div>
-          </div>
-        </div>
-        <div id="profile-chart" style="height:240px;" role="img" aria-label="Radial velocity profile chart">
-          <div class="chart-placeholder" id="profile-placeholder">
-            <span>📈</span>
-            <p>Profile renders after calculation</p>
-          </div>
-        </div>
+      <!-- Comparison mode: pin the current velocity profile as a reference
+           to compare against the next flow condition. -->
+      <div class="card" id="comparison-card">
+        <div class="card__title" style="margin-bottom:8px; font-size:0.85rem;">📌 Comparison Mode</div>
+        <p style="font-size:0.72rem; color:var(--text-muted); margin-bottom:10px;">Fix the current velocity profile as a reference, then change a parameter to compare.</p>
+        <button type="button" class="btn btn--outline btn--full" id="btn-toggle-reference" style="font-size:0.78rem;">📌 Fix as Reference</button>
       </div>
-
-    </section>
-
-    <!-- ============ RIGHT PANEL: Calculations & Charts ============ -->
-    <aside class="dashboard-layout__right" id="right-panel" role="complementary" aria-label="Calculation results and stats">
 
       <!-- KPI Cards stacked in a neat vertical grid -->
       <div class="kpi-grid" id="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -322,8 +349,8 @@
         </div>
       </div>
 
-    </aside>
-  </div>
+    </div>
+  </aside>
 </div>
 
 <!-- ============================================================
@@ -331,6 +358,7 @@
      ============================================================ -->
 <style>
   .fluids-dashboard { max-width: 1650px; margin: 0 auto; }
+  .sim-fullscreen { display: flex; flex-direction: column; gap: 24px; width: 100%; }
 
   /* Hagen-Poiseuille formula */
   .hp-formula-box {
@@ -384,6 +412,13 @@
      4. Three.js Scene  — 3D pipe with particle animation
      5. UI Updates      — KPI cards, table, badges, warnings
    ================================================================= */
+
+// -----------------------------------------------------------------
+// 0. COMPARISON MODE — pinned reference result, shared by the Plotly
+//    velocity-profile chart (both read this when rendering).
+// -----------------------------------------------------------------
+let referenceResult = null;
+let lastResult = null;
 
 // -----------------------------------------------------------------
 // 1. API CLIENT
@@ -447,6 +482,17 @@ const FormManager = {
       e.preventDefault();
       this.handleSubmit();
     });
+
+    // Live recalculation: debounced re-solve as the user edits any numeric
+    // input, so the flow results update without an explicit "Calculate"
+    // click. The button remains as an immediate fallback.
+    let debounceTimer = null;
+    this.form.querySelectorAll('input[type="number"]').forEach(input => {
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => this.handleSubmit(true), 350);
+      });
+    });
   },
 
   populatePresets(presets) {
@@ -479,32 +525,37 @@ const FormManager = {
     document.getElementById('btn-icon').textContent = loading ? '⏳' : '▶';
   },
 
-  async handleSubmit() {
+  async handleSubmit(auto = false) {
     const data = this.getFormData();
 
     // Basic client-side validation
     if (isNaN(data.diameter_mm) || data.diameter_mm <= 0) {
-      showToast('Diameter must be a positive number.', 'error');
+      if (!auto) showToast('Diameter must be a positive number.', 'error');
       return;
     }
     if (isNaN(data.flow_rate_lpm) || data.flow_rate_lpm < 0) {
-      showToast('Flow rate must be non-negative.', 'error');
+      if (!auto) showToast('Flow rate must be non-negative.', 'error');
       return;
     }
 
+    // Auto (debounced, live-input) recalculations skip the full-screen
+    // overlay and success toast — those are for the explicit "Calculate"
+    // click — so continuous typing doesn't flash the UI.
     this.setLoading(true);
-    showLoading('Running Darcy-Weisbach analysis…');
+    if (!auto) showLoading('Running Darcy-Weisbach analysis…');
 
     try {
       const response = await API.post('/pipe-flow/calculate/', data);
       const result   = response.data;
+      lastResult = result;
 
       UIUpdater.updateAll(result);
       PlotlyCharts.renderPressureDrop(result);
       PlotlyCharts.renderVelocityProfile(result);
-      ThreePipe.updateParticles(result);
+      ThreePipe.updateParticles(result, data.diameter_mm);
+      window.FloatingPanel?.markUpdated('results');
 
-      showToast('Calculation complete!', 'success');
+      if (!auto) showToast('Calculation complete!', 'success');
     } catch (err) {
       console.error('Calculation error:', err);
       const msg = err?.errors
@@ -513,7 +564,7 @@ const FormManager = {
       showToast(`Error: ${msg}`, 'error', 6000);
     } finally {
       this.setLoading(false);
-      hideLoading();
+      if (!auto) hideLoading();
     }
   },
 };
@@ -617,7 +668,7 @@ const PLOTLY_DARK_LAYOUT = {
 const PLOTLY_CONFIG = {
   responsive: true,
   displayModeBar: true,
-  modeBarButtonsToRemove: ['toImage', 'sendDataToCloud'],
+  modeBarButtonsToRemove: ['sendDataToCloud'],
   displaylogo: false,
 };
 
@@ -630,7 +681,6 @@ const PlotlyCharts = {
     const dpBar   = result.sweep_pressure_drops_pa.map(p => p / 1e5);  // Pa → bar
 
     // Operating point marker
-    const opQ  = result.velocity_m_s * Math.PI * 0.25;  // rough estimate from velocity
     const opDp = result.pressure_drop_total_bar;
 
     const traces = [
@@ -687,6 +737,19 @@ const PlotlyCharts = {
       },
     ];
 
+    // Comparison mode: overlay the pinned reference velocity profile,
+    // faded and dashed, alongside the current one.
+    if (referenceResult) {
+      traces.push({
+        x: referenceResult.velocity_profile,
+        y: referenceResult.radial_positions,
+        mode: 'lines',
+        name: 'Reference v(r)',
+        line: { color: '#94a3b8', width: 2, dash: 'dot', shape: 'spline' },
+        opacity: 0.6,
+      });
+    }
+
     const layout = {
       ...PLOTLY_DARK_LAYOUT,
       margin: { t: 10, r: 16, b: 48, l: 56 },
@@ -716,12 +779,34 @@ const PlotlyCharts = {
 // -----------------------------------------------------------------
 // 5. THREE.JS — 3D PIPE FLOW ANIMATION
 // -----------------------------------------------------------------
+// Scene length is kept fixed (pipe length ranges from mm to 100 km, which
+// cannot be mapped to scene units without making the tube invisible or the
+// camera useless). The radius, however, is scaled to the real diameter on a
+// log scale — diameter_mm ranges over 5 orders of magnitude (0.1–10000 mm),
+// so a linear mapping would make most real-world diameters look identical.
+const PIPE_SCENE_LENGTH = 4.0;
+const PIPE_DIAMETER_MM_MIN = 0.1;
+const PIPE_DIAMETER_MM_MAX = 10000.0;
+const PIPE_SCENE_RADIUS_MIN = 0.15;
+const PIPE_SCENE_RADIUS_MAX = 0.9;
+
+function diameterMmToSceneRadius(diameterMm) {
+  const clamped = Math.min(Math.max(diameterMm, PIPE_DIAMETER_MM_MIN), PIPE_DIAMETER_MM_MAX);
+  const logMin = Math.log10(PIPE_DIAMETER_MM_MIN);
+  const logMax = Math.log10(PIPE_DIAMETER_MM_MAX);
+  const frac = (Math.log10(clamped) - logMin) / (logMax - logMin);
+  return PIPE_SCENE_RADIUS_MIN + frac * (PIPE_SCENE_RADIUS_MAX - PIPE_SCENE_RADIUS_MIN);
+}
+
 const ThreePipe = {
   scene:     null,
   camera:    null,
   renderer:  null,
   controls:  null,
   particles: null,
+  pipeMesh:  null,
+  endRings:  [],
+  pipeRadiusScene: 0.5,
   animating: true,
   velocities: [],
   maxVelocity: 1,
@@ -765,28 +850,10 @@ const ThreePipe = {
     dirLight.position.set(2, 4, 3);
     this.scene.add(dirLight);
 
-    // Pipe mesh (transparent cylinder)
-    const pipeGeo = new THREE.CylinderGeometry(0.5, 0.5, 4, 32, 1, true);
-    const pipeMat = new THREE.MeshPhongMaterial({
-      color: 0x1e3a5f,
-      transparent: true,
-      opacity: 0.25,
-      side: THREE.DoubleSide,
-      wireframe: false,
-    });
-    const pipe = new THREE.Mesh(pipeGeo, pipeMat);
-    pipe.rotation.z = Math.PI / 2;  // Horizontal pipe (along X axis)
-    this.scene.add(pipe);
-
-    // Pipe end caps (rings)
-    const ringGeo = new THREE.TorusGeometry(0.5, 0.02, 12, 32);
-    const ringMat = new THREE.MeshPhongMaterial({ color: 0x3b82f6, opacity: 0.6, transparent: true });
-    [-2, 2].forEach(x => {
-      const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.position.x = x;
-      ring.rotation.y = Math.PI / 2;
-      this.scene.add(ring);
-    });
+    // Pipe mesh + end caps, sized from the current form diameter (falls back
+    // to the default radius if the field isn't populated yet).
+    const initialDiameterMm = parseFloat(document.getElementById('diameter_mm')?.value) || 50.0;
+    this.rebuildPipeGeometry(initialDiameterMm);
 
     // Set up DOM elements for camera controls
     const orbitCheckbox = document.getElementById('auto-orbit');
@@ -863,6 +930,46 @@ const ThreePipe = {
     window.addEventListener('resize', () => this.onResize());
   },
 
+  rebuildPipeGeometry(diameterMm) {
+    if (!this.scene) return;
+
+    if (this.pipeMesh) {
+      this.scene.remove(this.pipeMesh);
+      this.pipeMesh.geometry.dispose();
+    }
+    this.endRings.forEach(ring => {
+      this.scene.remove(ring);
+      ring.geometry.dispose();
+    });
+    this.endRings = [];
+
+    const sceneRadius = diameterMmToSceneRadius(diameterMm);
+    this.pipeRadiusScene = sceneRadius;
+
+    const pipeGeo = new THREE.CylinderGeometry(sceneRadius, sceneRadius, PIPE_SCENE_LENGTH, 32, 1, true);
+    const pipeMat = new THREE.MeshPhongMaterial({
+      color: 0x1e3a5f,
+      transparent: true,
+      opacity: 0.25,
+      side: THREE.DoubleSide,
+      wireframe: false,
+    });
+    this.pipeMesh = new THREE.Mesh(pipeGeo, pipeMat);
+    this.pipeMesh.rotation.z = Math.PI / 2;  // Horizontal pipe (along X axis)
+    this.scene.add(this.pipeMesh);
+
+    // Pipe end caps (rings), radius/tube thickness scaled with the pipe
+    const ringGeo = new THREE.TorusGeometry(sceneRadius, Math.max(sceneRadius * 0.04, 0.008), 12, 32);
+    const ringMat = new THREE.MeshPhongMaterial({ color: 0x3b82f6, opacity: 0.6, transparent: true });
+    [-PIPE_SCENE_LENGTH / 2, PIPE_SCENE_LENGTH / 2].forEach(x => {
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.x = x;
+      ring.rotation.y = Math.PI / 2;
+      this.scene.add(ring);
+      this.endRings.push(ring);
+    });
+  },
+
   createParticles(maxVel, regime) {
     if (this.particles) {
       this.scene.remove(this.particles);
@@ -870,8 +977,8 @@ const ThreePipe = {
     }
 
     const N    = 600;
-    const R    = 0.47;  // Pipe inner radius in scene units
-    const L    = 4.0;   // Pipe length in scene units
+    const R    = this.pipeRadiusScene;  // Pipe inner radius in scene units (real diameter, log-scaled)
+    const L    = PIPE_SCENE_LENGTH;     // Pipe length in scene units (fixed, see comment above)
 
     const positions = new Float32Array(N * 3);
     const colors    = new Float32Array(N * 3);
@@ -923,9 +1030,11 @@ const ThreePipe = {
     this.maxVelocity = maxVel;
   },
 
-  updateParticles(result) {
+  updateParticles(result, diameterMm) {
     if (!this.scene) return;
-    // Re-build particle system from actual calculation result
+    // Re-scale the pipe/rings to the real diameter before rebuilding
+    // particles, so the 3D geometry always matches what was submitted.
+    if (diameterMm) this.rebuildPipeGeometry(diameterMm);
     const maxV = result.velocity_m_s > 0 ? result.velocity_m_s : 1.0;
     this.createParticles(maxV, result.flow_regime);
   },
@@ -1026,6 +1135,58 @@ const ThreePipe = {
 document.addEventListener('DOMContentLoaded', async () => {
   await FormManager.init();
   ThreePipe.init();
+
+  // Comparison mode toggle
+  const refBtn = document.getElementById('btn-toggle-reference');
+  refBtn?.addEventListener('click', () => {
+    if (referenceResult) {
+      referenceResult = null;
+      refBtn.textContent = '📌 Fix as Reference';
+    } else if (lastResult) {
+      referenceResult = lastResult;
+      refBtn.textContent = '🗑 Clear Reference';
+    } else {
+      return;
+    }
+    PlotlyCharts.renderVelocityProfile(lastResult);
+  });
+
+  if (window.TRANSLATIONS) {
+    Object.assign(window.TRANSLATIONS.pt, {
+      "fluids-title": "Análise de Escoamento em Tubos",
+      "fluids-desc": "Modelo Darcy-Weisbach · Fricção de Colebrook-White · Classificação de Reynolds · Perfil de Velocidade · Gráfico Plotly · Simulação 3D em Three.js",
+      "fluids-presets-title": "Presets Rápidos",
+      "fluids-presets-sub": "Carregar propriedades comuns de fluidos",
+      "fluids-params-title": "Parâmetros do Tubo & Fluxo",
+      "fluids-params-sub": "Insira os valores nas unidades indicadas"
+    });
+
+    Object.assign(window.TRANSLATIONS.en, {
+      "fluids-title": "Pipe Flow Analysis",
+      "fluids-desc": "Darcy-Weisbach framework · Colebrook-White friction · Reynolds classification · Velocity profile · Plotly chart · Three.js 3D simulation",
+      "fluids-presets-title": "Quick Presets",
+      "fluids-presets-sub": "Load common fluid properties",
+      "fluids-params-title": "Pipe & Flow Parameters",
+      "fluids-params-sub": "Enter values in the units shown"
+    });
+
+    Object.assign(window.TRANSLATIONS.ja, {
+      "fluids-title": "水のパイプと流れのじっけん",
+      "fluids-desc": "パイプのなかの水のスピードや、ザワザワ流れる様子（レイノルズ数）、パイプにこすれて水が遅くなるのをしらべよう！",
+      "fluids-presets-title": "ながれる液体をえらぶ",
+      "fluids-presets-sub": "みず、あぶら、ガソリンなどにかえよう",
+      "fluids-params-title": "パイプと流れの設定",
+      "fluids-params-sub": "太さや長さ、流すスピードを入力してね"
+    });
+
+    // Auto-apply current language
+    const currentLang = localStorage.getItem('app-language') || 'pt';
+    window.translatePage(currentLang);
+  }
+
+  window.addEventListener('language-changed', (e) => {
+    window.translatePage(e.detail);
+  });
 });
 </script>
 {% endblock %}

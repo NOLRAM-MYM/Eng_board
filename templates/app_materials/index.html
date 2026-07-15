@@ -11,8 +11,8 @@
   <!-- Page Header -->
   <div class="page-header">
     <div>
-      <h1 class="page-header__title">Structural Beam Bending</h1>
-      <p class="page-header__desc">
+      <h1 class="page-header__title" data-i18n="materials-title">Structural Beam Bending</h1>
+      <p class="page-header__desc" data-i18n="materials-desc">
         Euler-Bernoulli beam theory · Flexural rigidity (EI) · Deflection profile ·
         Plotly chart · Interactive Three.js 3D structural bending
       </p>
@@ -27,18 +27,112 @@
     </div>
   </div>
 
-  <!-- Main Layout: 3-column grid -->
-  <div class="dashboard-layout">
+  <!-- ============ FULLSCREEN SIMULATION: 3D beam + deflection curve ============ -->
+  <section class="sim-fullscreen" aria-label="3D simulation and deflection curve">
 
-    <!-- ============ LEFT PANEL: Input Form ============ -->
-    <aside class="dashboard-layout__left" id="input-panel" role="complementary" aria-label="Calculation inputs">
+    <!-- Three.js 3D Beam Deflection -->
+    <div class="card card--glow">
+      <div class="card__header">
+        <div>
+          <div class="card__title" style="display:flex; align-items:center; gap:8px;">
+            <span>🌀 3D Beam Bending Workbench</span>
+            <span class="regime-tag" id="workbench-status" style="font-size:0.65rem; padding:2px 6px;">Stable</span>
+          </div>
+          <div class="card__subtitle">Interactive deformed mesh model (Three.js)</div>
+        </div>
+      </div>
+
+      <div class="sim-canvas-wrap">
+        <canvas id="three-canvas" aria-label="3D animated beam simulation"
+                style="border-radius:8px; background:#050b18;">
+        </canvas>
+
+        <!-- 3D Camera Controls (floating overlay on the canvas corner) -->
+        <div class="camera-controls camera-controls--overlay">
+          <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span>🎥 Camera Viewpoint (XYZ)</span>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.72rem; color:var(--text-muted);">
+              <input type="checkbox" id="auto-orbit" style="cursor:pointer; accent-color:var(--accent-primary);"> Auto-Orbit
+            </label>
+          </div>
+
+          <!-- View Presets -->
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:10px;">
+            <button type="button" class="btn btn--outline" id="btn-view-iso" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Iso</button>
+            <button type="button" class="btn btn--outline" id="btn-view-side" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Side (Z)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-top" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Top (Y)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-inlet" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Inlet (X)</button>
+          </div>
+
+          <!-- XYZ Sliders -->
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#ef4444; font-weight:bold;">X</span>
+              <input type="range" id="cam-slider-x" min="-6" max="6" step="0.05" value="0" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#ef4444;">
+              <span id="cam-val-x" style="width:28px; text-align:right;">0.00</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#10b981; font-weight:bold;">Y</span>
+              <input type="range" id="cam-slider-y" min="-6" max="6" step="0.05" value="1.5" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#10b981;">
+              <span id="cam-val-y" style="width:28px; text-align:right;">1.50</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#3b82f6; font-weight:bold;">Z</span>
+              <input type="range" id="cam-slider-z" min="-6" max="6" step="0.05" value="4" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#3b82f6;">
+              <span id="cam-val-z" style="width:28px; text-align:right;">4.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="velocity-legend" aria-label="Bending strain scale">
+        <span style="color:#3b82f6">● No bending</span>
+        <div class="legend-gradient"></div>
+        <span style="color:#ef4444">● Max deflection</span>
+      </div>
+      <p style="font-size:0.7rem; color:var(--text-muted); margin-top:8px; text-align:center;">
+        * Deflection profile scaled up by 40x for visual clarity. Drag to rotate/zoom (XYZ).
+      </p>
+    </div>
+
+    <!-- Plotly Chart — Deflection Profile -->
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <div class="card__title">📉 Deflection Profile Curve</div>
+          <div class="card__subtitle">Deflection y(x) along beam span</div>
+        </div>
+      </div>
+      <div id="plotly-chart" style="height:240px; border-radius:8px; overflow:hidden;">
+        <div class="chart-placeholder" id="chart-placeholder">
+          <span>📉</span>
+          <p>Solve deflection to render chart</p>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============ FLOATING PANELS: Config (left) / Results (right) ============ -->
+  <button class="fab fab--config" id="fab-config" data-panel="config" aria-label="Open configuration" aria-expanded="false" aria-controls="config-panel">⚙️</button>
+  <button class="fab fab--results" id="fab-results" data-panel="results" aria-label="Open results" aria-expanded="false" aria-controls="results-panel">📊</button>
+
+  <aside class="floating-panel floating-panel--left" id="config-panel" role="dialog" aria-label="Configuration panel" aria-hidden="true">
+    <div class="floating-panel__header">
+      <span class="floating-panel__title">⚙️ Configuration</span>
+      <div class="floating-panel__actions">
+        <button class="floating-panel__pin" id="pin-config" aria-label="Pin panel" aria-pressed="false">📌</button>
+        <button class="floating-panel__close" aria-label="Close">✕</button>
+      </div>
+    </div>
+    <div class="floating-panel__body">
 
       <!-- Preset Materials -->
-      <div class="card" style="margin-bottom:16px;">
+      <div class="card">
         <div class="card__header">
           <div>
-            <div class="card__title">Material Preset</div>
-            <div class="card__subtitle">Select standard engineering material</div>
+            <div class="card__title" data-i18n="materials-presets-title">Material Preset</div>
+            <div class="card__subtitle" data-i18n="materials-presets-sub">Select standard engineering material</div>
           </div>
         </div>
         <div class="form-group" style="margin-bottom:0">
@@ -55,8 +149,8 @@
       <form class="card" id="beam-form" novalidate aria-label="Beam bending parameters">
         <div class="card__header">
           <div>
-            <div class="card__title">Beam Parameters</div>
-            <div class="card__subtitle">Configure structural properties</div>
+            <div class="card__title" data-i18n="materials-params-title">Beam Parameters</div>
+            <div class="card__subtitle" data-i18n="materials-params-sub">Configure structural properties</div>
           </div>
         </div>
 
@@ -121,6 +215,8 @@
           <select class="form-input" id="load_type" name="load_type">
             <option value="point_centre">Centered Point Load (simply supported)</option>
             <option value="uniform">Uniformly Distributed Load (UDL)</option>
+            <option value="cantilever_point">Cantilever — Point Load at Free End</option>
+            <option value="cantilever_uniform">Cantilever — Uniformly Distributed Load</option>
           </select>
         </div>
 
@@ -139,94 +235,27 @@
         </button>
       </form>
 
-    </aside>
+    </div>
+  </aside>
 
-    <!-- ============ CENTER PANEL: 3D Visualization & Profile ============ -->
-    <section class="dashboard-layout__center" aria-label="3D simulation and deflection curve">
-
-      <!-- Three.js 3D Beam Deflection -->
-      <div class="card card--glow">
-        <div class="card__header">
-          <div>
-            <div class="card__title" style="display:flex; align-items:center; gap:8px;">
-              <span>🌀 3D Beam Bending Workbench</span>
-              <span class="regime-tag" id="workbench-status" style="font-size:0.65rem; padding:2px 6px;">Stable</span>
-            </div>
-            <div class="card__subtitle">Interactive deformed mesh model (Three.js)</div>
-          </div>
-        </div>
-        
-        <canvas id="three-canvas" aria-label="3D animated beam simulation"
-                style="width:100%; height:420px; border-radius:8px; display:block; background:#050b18;">
-        </canvas>
-        
-        <div class="velocity-legend" aria-label="Bending strain scale">
-          <span style="color:#3b82f6">● No bending</span>
-          <div class="legend-gradient"></div>
-          <span style="color:#ef4444">● Max deflection</span>
-        </div>
-        <p style="font-size:0.7rem; color:var(--text-muted); margin-top:8px; text-align:center;">
-          * Deflection profile scaled up by 40x for visual clarity. Drag to rotate/zoom (XYZ).
-        </p>
-
-        <!-- 3D Camera Controls -->
-        <div class="camera-controls" style="margin-top:16px; margin-bottom: 8px; padding:12px; background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md);">
-          <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-            <span>🎥 Camera Viewpoint (XYZ)</span>
-            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.72rem; color:var(--text-muted);">
-              <input type="checkbox" id="auto-orbit" style="cursor:pointer; accent-color:var(--accent-primary);"> Auto-Orbit
-            </label>
-          </div>
-          
-          <!-- View Presets -->
-          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:10px;">
-            <button type="button" class="btn btn--outline" id="btn-view-iso" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Iso</button>
-            <button type="button" class="btn btn--outline" id="btn-view-side" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Side (Z)</button>
-            <button type="button" class="btn btn--outline" id="btn-view-top" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Top (Y)</button>
-            <button type="button" class="btn btn--outline" id="btn-view-inlet" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Inlet (X)</button>
-          </div>
-
-          <!-- XYZ Sliders -->
-          <div style="display:flex; flex-direction:column; gap:6px;">
-            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
-              <span style="width:12px; color:#ef4444; font-weight:bold;">X</span>
-              <input type="range" id="cam-slider-x" min="-6" max="6" step="0.05" value="0" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#ef4444;">
-              <span id="cam-val-x" style="width:28px; text-align:right;">0.00</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
-              <span style="width:12px; color:#10b981; font-weight:bold;">Y</span>
-              <input type="range" id="cam-slider-y" min="-6" max="6" step="0.05" value="1.5" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#10b981;">
-              <span id="cam-val-y" style="width:28px; text-align:right;">1.50</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
-              <span style="width:12px; color:#3b82f6; font-weight:bold;">Z</span>
-              <input type="range" id="cam-slider-z" min="-6" max="6" step="0.05" value="4" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#3b82f6;">
-              <span id="cam-val-z" style="width:28px; text-align:right;">4.00</span>
-            </div>
-          </div>
-        </div>
+  <aside class="floating-panel floating-panel--right" id="results-panel" role="dialog" aria-label="Results panel" aria-hidden="true">
+    <div class="floating-panel__header">
+      <span class="floating-panel__title">📊 Results</span>
+      <div class="floating-panel__actions">
+        <button class="floating-panel__pin" id="pin-results" aria-label="Pin panel" aria-pressed="false">📌</button>
+        <button class="floating-panel__export" id="export-results">⬇ Export</button>
+        <button class="floating-panel__close" aria-label="Close">✕</button>
       </div>
+    </div>
+    <div class="floating-panel__body">
 
-      <!-- Plotly Chart — Deflection Profile -->
-      <div class="card">
-        <div class="card__header">
-          <div>
-            <div class="card__title">📉 Deflection Profile Curve</div>
-            <div class="card__subtitle">Deflection y(x) along beam span (simply supported)</div>
-          </div>
-        </div>
-        <div id="plotly-chart" style="height:240px; border-radius:8px; overflow:hidden;">
-          <div class="chart-placeholder" id="chart-placeholder">
-            <span>📉</span>
-            <p>Solve deflection to render chart</p>
-          </div>
-        </div>
+      <!-- Comparison mode: pin the current deflection curve as a reference
+           to compare against the next set of beam parameters. -->
+      <div class="card" id="comparison-card">
+        <div class="card__title" style="margin-bottom:8px; font-size:0.85rem;">📌 Comparison Mode</div>
+        <p style="font-size:0.72rem; color:var(--text-muted); margin-bottom:10px;">Fix the current deflection curve as a reference, then change a parameter to compare.</p>
+        <button type="button" class="btn btn--outline btn--full" id="btn-toggle-reference" style="font-size:0.78rem;">📌 Fix as Reference</button>
       </div>
-
-    </section>
-
-    <!-- ============ RIGHT PANEL: Calculations & Charts ============ -->
-    <aside class="dashboard-layout__right" id="right-panel" role="complementary" aria-label="Calculation results and stats">
 
       <!-- KPI Cards stacked in a neat vertical grid -->
       <div class="kpi-grid" id="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -263,16 +292,26 @@
         </table>
       </div>
 
-    </aside>
+      <!-- Formula step-by-step panel -->
+      <div class="card" id="formula-steps-card">
+        <div class="card__title" style="margin-bottom:12px;" data-i18n="materials-steps-title">🧮 Step-by-Step Calculation</div>
+        <div id="formula-steps" class="formula-steps">—</div>
+      </div>
 
-  </div>
+    </div>
+  </aside>
 </div>
 
 <style>
   .materials-dashboard { max-width: 1650px; margin: 0 auto; }
+  .sim-fullscreen { display: flex; flex-direction: column; gap: 24px; width: 100%; }
   .kpi-card--rigidity { border-left-color: var(--accent-primary); }
   .kpi-card--area { border-left-color: var(--accent-info); }
   .kpi-card--deflection { border-left-color: var(--accent-danger); }
+  .formula-steps { font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.7; color: var(--text-secondary); }
+  .formula-steps__line { padding: 6px 0; border-bottom: 1px dashed var(--border-subtle); }
+  .formula-steps__line:last-child { border-bottom: none; color: var(--accent-primary); font-weight: 600; }
+  .formula-steps__label { display: block; color: var(--text-muted); font-family: var(--font-sans, inherit); font-size: 0.7rem; margin-bottom: 2px; }
 </style>
 
 {% load static %}
@@ -281,6 +320,14 @@
 <script src="{% static 'core/vendor/OrbitControls.js' %}"></script>
 
 <script>
+// -----------------------------------------------------------------
+// 0. COMPARISON MODE — pinned reference result, shared by the Plotly
+//    deflection-curve chart (read when rendering).
+// -----------------------------------------------------------------
+let referenceResult = null;
+let lastResult = null;
+let lastLength = null;
+
 // -----------------------------------------------------------------
 // 1. API CLIENT & CONFIG
 // -----------------------------------------------------------------
@@ -340,6 +387,18 @@ const FormManager = {
       this.handleSubmit();
     });
 
+    // Live recalculation: debounced re-solve as the user edits/drags any
+    // numeric input, so the deflection curve updates without an explicit
+    // click on "Solve Deflection". The button remains as an immediate
+    // fallback.
+    let debounceTimer = null;
+    this.form.querySelectorAll('input[type="number"]').forEach(input => {
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => this.handleSubmit(true), 350);
+      });
+    });
+
     // Run initial solve
     this.handleSubmit();
   },
@@ -352,15 +411,17 @@ const FormManager = {
 
     let I = 8.33e-6; // default
     let area = 0.045; // 150mm x 300mm = 0.045m2
-    
+    let width_m = null;
+    let height_m = null;
+
     if (this.shapeSelect.value === 'rectangular') {
-      const width = parseFloat(document.getElementById('width_mm').value) / 1000.0;
-      const height = parseFloat(document.getElementById('height_mm').value) / 1000.0;
-      I = (width * Math.pow(height, 3)) / 12.0;
-      area = width * height;
+      width_m = parseFloat(document.getElementById('width_mm').value) / 1000.0;
+      height_m = parseFloat(document.getElementById('height_mm').value) / 1000.0;
+      I = (width_m * Math.pow(height_m, 3)) / 12.0;
+      area = width_m * height_m;
     } else {
       I = parseFloat(document.getElementById('second_moment_m4').value);
-      area = 0.0; // custom/unknown
+      area = 0.0; // custom/unknown — no real cross-section to visualize
     }
 
     return {
@@ -369,33 +430,46 @@ const FormManager = {
       second_moment_m4: I,
       load_kn: load,
       load_type: load_type,
-      area_m2: area
+      area_m2: area,
+      width_m: width_m,
+      height_m: height_m,
     };
   },
 
-  async handleSubmit() {
+  async handleSubmit(auto = false) {
     const inputs = this.getInputs();
-    
+
     this.calculateBtn.disabled = true;
-    document.getElementById('btn-text').textContent = 'Solving…';
-    showLoading('Solving Euler-Bernoulli beam equations…');
+    // Auto (debounced, live-input) recalculations skip the full-screen
+    // overlay and success toast — those are for the explicit "Solve"
+    // click — so continuous typing doesn't flash the UI.
+    if (!auto) {
+      document.getElementById('btn-text').textContent = 'Solving…';
+      showLoading('Solving Euler-Bernoulli beam equations…');
+    }
 
     try {
       const response = await API.post('/beam-deflection/', inputs);
       const result = response.data;
-      
+      lastResult = result;
+      lastLength = inputs.length_m;
+
       UIUpdater.updateAll(inputs, result);
+      FormulaExplainer.render(inputs, result);
       PlotlyChart.render(result, inputs.length_m);
-      ThreeBeam.updateDeflection(result.deflection_m, result.x_positions_m, inputs.length_m);
-      
-      showToast('Beam equations solved successfully!', 'success');
+      ThreeBeam.updateDeflection(result.deflection_m, result.x_positions_m, inputs.length_m, inputs.width_m, inputs.height_m, inputs.load_type);
+      window.FloatingPanel?.markUpdated('results');
+
+      if (!auto) showToast('Beam equations solved successfully!', 'success');
     } catch (e) {
       console.error(e);
       showToast('Error calculating deflection. Check input values.', 'error');
     } finally {
       this.calculateBtn.disabled = false;
-      document.getElementById('btn-text').textContent = 'Solve Deflection';
-      hideLoading();
+      if (!auto) {
+        document.getElementById('btn-text').textContent = 'Solve Deflection';
+        hideLoading();
+      }
     }
   }
 };
@@ -428,8 +502,73 @@ const UIUpdater = {
     document.getElementById('tbl-moment').textContent = inputs.second_moment_m4.toExponential(4) + ' m⁴';
     document.getElementById('tbl-rigidity').textContent = EI.toExponential(4) + ' N·m²';
     document.getElementById('tbl-load').textContent = inputs.load_kn.toFixed(1) + ' kN';
-    document.getElementById('tbl-load-type').textContent = inputs.load_type === 'uniform' ? 'Uniform (UDL)' : 'Centered Point';
+    const loadTypeLabels = {
+      point_centre: 'Centered Point (simply supported)',
+      uniform: 'Uniform (UDL, simply supported)',
+      cantilever_point: 'Cantilever — Point at Free End',
+      cantilever_uniform: 'Cantilever — Uniform (UDL)',
+    };
+    document.getElementById('tbl-load-type').textContent = loadTypeLabels[inputs.load_type] || inputs.load_type;
     document.getElementById('tbl-max-deflection').textContent = result.max_deflection_mm.toFixed(4) + ' mm';
+  }
+};
+
+// -----------------------------------------------------------------
+// 3b. FORMULA STEP-BY-STEP EXPLAINER
+// -----------------------------------------------------------------
+// Mirrors the exact dispatch in BeamDeflectionService.compute()
+// (apps/app_materials/services.py) — one template per load_type, so the
+// panel always shows the same formula the backend actually evaluated.
+const FormulaExplainer = {
+  render(inputs, result) {
+    const container = document.getElementById('formula-steps');
+    if (!container) return;
+
+    const P = inputs.load_kn * 1000;       // kN -> N
+    const L = inputs.length_m;
+    const E = inputs.youngs_modulus_gpa * 1e9; // GPa -> Pa
+    const I = inputs.second_moment_m4;
+    const EI = E * I;
+    const deltaM = result.max_deflection_mm / 1000;
+    const q = P / L;
+
+    let steps;
+    switch (inputs.load_type) {
+      case 'uniform':
+        steps = [
+          ['q = P / L', `${P.toExponential(3)} N / ${L.toFixed(3)} m = ${q.toExponential(3)} N/m`],
+          ['δ_max = 5qL⁴ / (384·EI)', `5 × ${q.toExponential(3)} × ${L.toFixed(3)}⁴ / (384 × ${EI.toExponential(3)})`],
+        ];
+        break;
+      case 'cantilever_point':
+        steps = [
+          ['δ_max = PL³ / (3·EI)', `${P.toExponential(3)} × ${L.toFixed(3)}³ / (3 × ${EI.toExponential(3)})`],
+        ];
+        break;
+      case 'cantilever_uniform':
+        steps = [
+          ['q = P / L', `${P.toExponential(3)} N / ${L.toFixed(3)} m = ${q.toExponential(3)} N/m`],
+          ['δ_max = qL⁴ / (8·EI)', `${q.toExponential(3)} × ${L.toFixed(3)}⁴ / (8 × ${EI.toExponential(3)})`],
+        ];
+        break;
+      default: // point_centre
+        steps = [
+          ['δ_max = PL³ / (48·EI)', `${P.toExponential(3)} × ${L.toFixed(3)}³ / (48 × ${EI.toExponential(3)})`],
+        ];
+    }
+
+    const lines = [
+      ['E·I (flexural rigidity)', `${E.toExponential(3)} Pa × ${I.toExponential(3)} m⁴ = ${EI.toExponential(3)} N·m²`],
+      ...steps,
+      ['δ_max', `${deltaM.toExponential(4)} m = ${result.max_deflection_mm.toFixed(4)} mm`],
+    ];
+
+    container.innerHTML = lines.map(([label, value]) => `
+      <div class="formula-steps__line">
+        <span class="formula-steps__label">${label}</span>
+        <span>${value}</span>
+      </div>
+    `).join('');
   }
 };
 
@@ -452,6 +591,21 @@ const PlotlyChart = {
       fill: 'tozeroy',
       fillcolor: 'rgba(59,130,246,0.05)'
     };
+
+    const traces = [trace];
+
+    // Comparison mode: overlay the pinned reference deflection curve,
+    // faded and dashed, alongside the current one.
+    if (referenceResult) {
+      traces.push({
+        x: referenceResult.x_positions_m,
+        y: referenceResult.deflection_m.map(dy => dy * 1000.0),
+        mode: 'lines',
+        name: 'Reference Deflection',
+        line: { color: '#94a3b8', width: 2, dash: 'dot' },
+        opacity: 0.6,
+      });
+    }
 
     const layout = {
       paper_bgcolor: 'transparent',
@@ -476,10 +630,10 @@ const PlotlyChart = {
     document.getElementById('chart-placeholder')?.remove();
 
     if (!this.rendered) {
-      Plotly.newPlot('plotly-chart', [trace], layout, { responsive: true, displaylogo: false });
+      Plotly.newPlot('plotly-chart', traces, layout, { responsive: true, displaylogo: false });
       this.rendered = true;
     } else {
-      Plotly.react('plotly-chart', [trace], layout, { responsive: true, displaylogo: false });
+      Plotly.react('plotly-chart', traces, layout, { responsive: true, displaylogo: false });
     }
   }
 };
@@ -602,18 +756,34 @@ const ThreeBeam = {
     window.addEventListener('resize', () => this.onResize());
   },
 
-  createBeam(L) {
+  createBeam(L, widthM, heightM, loadType) {
     if (this.beam) this.scene.remove(this.beam);
     this.supports.forEach(s => this.scene.remove(s));
     this.supports = [];
 
     this.beamLength = L;
+    this.beamWidthM = widthM;
+    this.beamHeightM = heightM;
+    this.beamLoadType = loadType;
+
+    // Cross-section dimensions in scene units. Real width/height (0.01–2m)
+    // can't be drawn to true scale against the length (0.5–20m) without
+    // becoming invisible or overwhelming the view, so we exaggerate both
+    // dimensions by the same factor — preserving the real width:height
+    // aspect ratio, which is what matters pedagogically (a tall/thin beam
+    // resists bending differently from a wide/flat one of the same area).
+    let sceneHeight = 0.15, sceneWidth = 0.15;
+    if (widthM && heightM && widthM > 0 && heightM > 0) {
+      const sectionScale = Math.min(L * 0.12, 0.4) / Math.max(widthM, heightM);
+      sceneHeight = heightM * sectionScale;
+      sceneWidth = widthM * sectionScale;
+    }
 
     // Segmented Box Geometry to support local deformations along X axis
     // BoxGeometry(width, height, depth, widthSegments, heightSegments, depthSegments)
-    // Here: X is width (length), Y is height, Z is depth.
-    const beamGeo = new THREE.BoxGeometry(L, 0.15, 0.15, 60, 1, 1);
-    
+    // Here: X is beam length, Y is cross-section height, Z is cross-section width.
+    const beamGeo = new THREE.BoxGeometry(L, sceneHeight, sceneWidth, 60, 1, 1);
+
     // Shader/Material: Color based on strain (we will use vertex colors or just map them)
     const beamMat = new THREE.MeshPhongMaterial({
       color: 0x3b82f6,
@@ -633,21 +803,33 @@ const ThreeBeam = {
       this.initialYPositions[i] = posAttribute.getY(i);
     }
 
-    // Add simply supported end pillars (pins)
-    const supportGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.4, 4, 1);
     const supportMat = new THREE.MeshPhongMaterial({ color: 0x1e2d45 });
-    
-    [-L/2, L/2].forEach(x => {
-      const support = new THREE.Mesh(supportGeo, supportMat);
-      support.position.set(x, -0.2, 0);
-      this.scene.add(support);
-      this.supports.push(support);
-    });
+    const isCantilever = loadType === 'cantilever_point' || loadType === 'cantilever_uniform';
+
+    if (isCantilever) {
+      // Fixed (built-in) support: a rigid wall block at the beam's origin
+      // end (local x = -L/2), matching the "fixed at x=0" boundary
+      // condition used by the cantilever formulas — the other end is free.
+      const wallGeo = new THREE.BoxGeometry(0.12, Math.max(sceneHeight * 2.5, 0.5), Math.max(sceneWidth * 2.5, 0.5));
+      const wall = new THREE.Mesh(wallGeo, supportMat);
+      wall.position.set(-L / 2 - 0.06, 0, 0);
+      this.scene.add(wall);
+      this.supports.push(wall);
+    } else {
+      // Simply-supported end pillars (pins) — free to rotate at both ends
+      const supportGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.4, 4, 1);
+      [-L / 2, L / 2].forEach(x => {
+        const support = new THREE.Mesh(supportGeo, supportMat);
+        support.position.set(x, -0.2, 0);
+        this.scene.add(support);
+        this.supports.push(support);
+      });
+    }
   },
 
-  updateDeflection(deflectionCurve, xPositions, L) {
-    if (L !== this.beamLength) {
-      this.createBeam(L);
+  updateDeflection(deflectionCurve, xPositions, L, widthM, heightM, loadType) {
+    if (L !== this.beamLength || widthM !== this.beamWidthM || heightM !== this.beamHeightM || loadType !== this.beamLoadType) {
+      this.createBeam(L, widthM, heightM, loadType);
     }
     if (!this.beam) return;
 
@@ -752,6 +934,61 @@ const ThreeBeam = {
 document.addEventListener('DOMContentLoaded', () => {
   FormManager.init();
   ThreeBeam.init();
+
+  // Comparison mode toggle
+  const refBtn = document.getElementById('btn-toggle-reference');
+  refBtn?.addEventListener('click', () => {
+    if (referenceResult) {
+      referenceResult = null;
+      refBtn.textContent = '📌 Fix as Reference';
+    } else if (lastResult) {
+      referenceResult = lastResult;
+      refBtn.textContent = '🗑 Clear Reference';
+    } else {
+      return;
+    }
+    PlotlyChart.render(lastResult, lastLength);
+  });
+
+  if (window.TRANSLATIONS) {
+    Object.assign(window.TRANSLATIONS.pt, {
+      "materials-title": "Flexão Estrutural de Vigas",
+      "materials-desc": "Teoria de Euler-Bernoulli · Rigidez à flexão (EI) · Perfil de deflexão · Gráfico Plotly · Curvatura 3D interativa em Three.js",
+      "materials-presets-title": "Predefinidos de Materiais",
+      "materials-presets-sub": "Selecione um material padrão de engenharia",
+      "materials-params-title": "Parâmetros da Viga",
+      "materials-params-sub": "Configure as propriedades estruturais",
+      "materials-steps-title": "🧮 Cálculo Passo a Passo"
+    });
+
+    Object.assign(window.TRANSLATIONS.en, {
+      "materials-title": "Structural Beam Bending",
+      "materials-desc": "Euler-Bernoulli beam theory · Flexural rigidity (EI) · Deflection profile · Plotly chart · Interactive Three.js 3D structural bending",
+      "materials-presets-title": "Material Presets",
+      "materials-presets-sub": "Select standard engineering material",
+      "materials-params-title": "Beam Parameters",
+      "materials-params-sub": "Configure structural properties",
+      "materials-steps-title": "🧮 Step-by-Step Calculation"
+    });
+
+    Object.assign(window.TRANSLATIONS.ja, {
+      "materials-title": "板のつよさと曲がり方のじっけん",
+      "materials-desc": "鉄や木でできた板（はり）の上に重いものをのせたとき、どれくらい曲がるか（たわみ）、つよさをシミュレーションしよう！",
+      "materials-presets-title": "板のざいりょうを選ぶ",
+      "materials-presets-sub": "てつ、アルミ、コンクリート、き（木）から選んでね",
+      "materials-params-title": "板のながさや太さの設定",
+      "materials-params-sub": "板의サイズや重さの位置をきめてみよう",
+      "materials-steps-title": "🧮 けいさんの じゅんばん"
+    });
+
+    // Auto-apply current language
+    const currentLang = localStorage.getItem('app-language') || 'pt';
+    window.translatePage(currentLang);
+  }
+
+  window.addEventListener('language-changed', (e) => {
+    window.translatePage(e.detail);
+  });
 });
 </script>
 {% endblock %}

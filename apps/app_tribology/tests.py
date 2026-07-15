@@ -60,6 +60,39 @@ class TribologyNumericalTests(TestCase):
         self.assertGreater(res_fast["h_min_um"], res_slow["h_min_um"])
         self.assertGreater(res_fast["lambda_parameter"], res_slow["lambda_parameter"])
 
+    def test_equal_materials_matches_legacy_single_material_result(self):
+        """Explicit E1=E2=210GPa/nu=0.3 must reproduce the same result as
+        omitting the gear material entirely (the pre-existing single-material
+        behavior), since the legacy formula computed E/(1-nu^2) either way."""
+        common = dict(
+            module_mm=3.0, pinion_teeth=20, gear_teeth=40, pinion_rpm=1500.0,
+            viscosity_pa_s=0.04, roughness_um=0.5, load_n=2000.0,
+        )
+        legacy = TribologyService(**common).compute_ehl()
+        explicit_equal = TribologyService(
+            **common, youngs_modulus_gpa=210.0, poissons_ratio=0.3,
+            gear_youngs_modulus_gpa=210.0, gear_poissons_ratio=0.3,
+        ).compute_ehl()
+        self.assertAlmostEqual(legacy["h_min_um"], explicit_equal["h_min_um"], places=9)
+
+    def test_dissimilar_materials_changes_film_thickness(self):
+        """A steel pinion against a bronze gear (lower E) must yield a
+        different film thickness than a steel-steel pair, since the
+        Dowson-Higginson formula depends on the reduced elastic modulus E'."""
+        common = dict(
+            module_mm=3.0, pinion_teeth=20, gear_teeth=40, pinion_rpm=1500.0,
+            viscosity_pa_s=0.04, roughness_um=0.5, load_n=2000.0,
+        )
+        steel_steel = TribologyService(
+            **common, youngs_modulus_gpa=210.0, poissons_ratio=0.3,
+            gear_youngs_modulus_gpa=210.0, gear_poissons_ratio=0.3,
+        ).compute_ehl()
+        steel_bronze = TribologyService(
+            **common, youngs_modulus_gpa=210.0, poissons_ratio=0.3,
+            gear_youngs_modulus_gpa=115.0, gear_poissons_ratio=0.34,
+        ).compute_ehl()
+        self.assertNotAlmostEqual(steel_steel["h_min_um"], steel_bronze["h_min_um"], places=6)
+
 
 class TribologyAPITests(APITestCase):
     """Verifies that POST calculation endpoints validate parameters and handle errors."""

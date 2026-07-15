@@ -11,8 +11,8 @@
   <!-- Page Header -->
   <div class="page-header">
     <div>
-      <h1 class="page-header__title">Gears Geometry &amp; Tribology Solver</h1>
-      <p class="page-header__desc">
+      <h1 class="page-header__title" data-i18n="tribology-title">Gears Geometry &amp; Tribology Solver</h1>
+      <p class="page-header__desc" data-i18n="tribology-desc">
         Spur gear dimensioning (AGMA/ISO) · Dowson-Higginson Elastohydrodynamic Lubrication (EHL) ·
         Lubrication regime analysis · Plotly.js speed sweep · Three.js 3D interlocking gear simulation
       </p>
@@ -27,18 +27,112 @@
     </div>
   </div>
 
-  <!-- Main Layout: 3-column grid -->
-  <div class="dashboard-layout">
+  <!-- ============ FULLSCREEN SIMULATION: 3D gears + speed sweep ============ -->
+  <section class="sim-fullscreen" aria-label="3D simulation and speed sweep">
 
-    <!-- ============ LEFT PANEL: Input Form & Presets ============ -->
-    <aside class="dashboard-layout__left" id="input-panel" role="complementary" aria-label="Calculation inputs">
+    <!-- Three.js 3D Interlocking Spur Gears -->
+    <div class="card card--glow">
+      <div class="card__header">
+        <div>
+          <div class="card__title" style="display:flex; align-items:center; gap:8px;">
+            <span>🌀 3D Gear Interlock Workbench</span>
+            <span class="regime-tag" id="workbench-status" style="font-size:0.65rem; padding:2px 6px;">Idle</span>
+          </div>
+          <div class="card__subtitle">Spur gear profiles rotating dynamically (Three.js)</div>
+        </div>
+      </div>
+
+      <div class="sim-canvas-wrap">
+        <canvas id="three-canvas" aria-label="3D animated gear simulation"
+                style="border-radius:8px; background:#050b18;">
+        </canvas>
+
+        <!-- 3D Camera Controls (floating overlay on the canvas corner) -->
+        <div class="camera-controls camera-controls--overlay">
+          <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span>🎥 Camera Viewpoint (XYZ)</span>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.72rem; color:var(--text-muted);">
+              <input type="checkbox" id="auto-orbit" style="cursor:pointer; accent-color:var(--accent-primary);"> Auto-Orbit
+            </label>
+          </div>
+
+          <!-- View Presets -->
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:10px;">
+            <button type="button" class="btn btn--outline" id="btn-view-iso" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Iso</button>
+            <button type="button" class="btn btn--outline" id="btn-view-side" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Front (Z)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-top" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Top (Y)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-inlet" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Side (X)</button>
+          </div>
+
+          <!-- XYZ Sliders -->
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#ef4444; font-weight:bold;">X</span>
+              <input type="range" id="cam-slider-x" min="-6" max="6" step="0.05" value="0" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#ef4444;">
+              <span id="cam-val-x" style="width:28px; text-align:right;">0.00</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#10b981; font-weight:bold;">Y</span>
+              <input type="range" id="cam-slider-y" min="-6" max="6" step="0.05" value="0.0" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#10b981;">
+              <span id="cam-val-y" style="width:28px; text-align:right;">0.00</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:12px; color:#3b82f6; font-weight:bold;">Z</span>
+              <input type="range" id="cam-slider-z" min="-6" max="6" step="0.05" value="3.5" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#3b82f6;">
+              <span id="cam-val-z" style="width:28px; text-align:right;">3.50</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="velocity-legend" aria-label="Gear labels" style="justify-content:center; gap:16px;">
+        <span style="color:#60a5fa">● Pinion (Z₁)</span>
+        <span style="color:#f59e0b">● Gear (Coroa Z₂)</span>
+        <span style="color:#34d399">● EHL Oil Film</span>
+      </div>
+      <p style="font-size:0.7rem; color:var(--text-muted); margin-top:8px; text-align:center;">
+        * Mesh sized relative to pitch diameters. Interlocks and spins in sync based on speed.
+      </p>
+    </div>
+
+    <!-- Plotly Chart — Sweep -->
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <div class="card__title">📉 EHL Lubrication Zone Sweep</div>
+          <div class="card__subtitle">Lambda Parameter (Λ) vs. Operating Speed (RPM)</div>
+        </div>
+      </div>
+      <div id="plotly-chart" style="height:260px; border-radius:8px; overflow:hidden;">
+        <div class="chart-placeholder" id="chart-placeholder">
+          <span>📉</span>
+          <p>Solve gear parameters to render speed sweep</p>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============ FLOATING PANELS: Config (left) / Results (right) ============ -->
+  <button class="fab fab--config" id="fab-config" data-panel="config" aria-label="Open configuration" aria-expanded="false" aria-controls="config-panel">⚙️</button>
+  <button class="fab fab--results" id="fab-results" data-panel="results" aria-label="Open results" aria-expanded="false" aria-controls="results-panel">📊</button>
+
+  <aside class="floating-panel floating-panel--left" id="config-panel" role="dialog" aria-label="Configuration panel" aria-hidden="true">
+    <div class="floating-panel__header">
+      <span class="floating-panel__title">⚙️ Configuration</span>
+      <div class="floating-panel__actions">
+        <button class="floating-panel__pin" id="pin-config" aria-label="Pin panel" aria-pressed="false">📌</button>
+        <button class="floating-panel__close" aria-label="Close">✕</button>
+      </div>
+    </div>
+    <div class="floating-panel__body">
 
       <!-- Preset Selection -->
-      <div class="card" style="margin-bottom:16px;">
+      <div class="card">
         <div class="card__header">
           <div>
-            <div class="card__title">Design Preset</div>
-            <div class="card__subtitle">Load gear application parameters</div>
+            <div class="card__title" data-i18n="tribology-presets-title">Design Preset</div>
+            <div class="card__subtitle" data-i18n="tribology-presets-sub">Load gear application parameters</div>
           </div>
         </div>
         <div class="form-group" style="margin-bottom:0">
@@ -55,8 +149,8 @@
       <form class="card" id="tribology-form" novalidate aria-label="Gear Tribology parameters">
         <div class="card__header">
           <div>
-            <div class="card__title">Gear Parameters</div>
-            <div class="card__subtitle">Configure geometry and load</div>
+            <div class="card__title" data-i18n="tribology-params-title">Gear Parameters</div>
+            <div class="card__subtitle" data-i18n="tribology-params-sub">Configure geometry and load</div>
           </div>
         </div>
 
@@ -119,6 +213,29 @@
                  value="2000.0" min="1.0" max="1000000.0" step="100.0">
         </div>
 
+        <!-- Advanced: dissimilar pinion/gear materials -->
+        <details style="margin-bottom:16px;">
+          <summary style="cursor:pointer; font-size:0.8rem; font-weight:600; color:var(--text-secondary); padding:6px 0;">🔬 Advanced: Pinion/Gear Materials</summary>
+          <div style="padding-top:8px;">
+            <div class="form-group">
+              <label class="form-label" for="pinion-material">Pinion Material</label>
+              <select class="form-input" id="pinion-material" data-e="210" data-nu="0.3">
+                <option value="steel" data-e="210" data-nu="0.30">Steel (E=210 GPa)</option>
+                <option value="bronze" data-e="115" data-nu="0.34">Bronze (E=115 GPa)</option>
+                <option value="cast_iron" data-e="170" data-nu="0.26">Cast Iron (E=170 GPa)</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" for="gear-material">Gear Material</label>
+              <select class="form-input" id="gear-material" data-e="210" data-nu="0.3">
+                <option value="steel" data-e="210" data-nu="0.30">Steel (E=210 GPa)</option>
+                <option value="bronze" data-e="115" data-nu="0.34">Bronze (E=115 GPa)</option>
+                <option value="cast_iron" data-e="170" data-nu="0.26">Cast Iron (E=170 GPa)</option>
+              </select>
+            </div>
+          </div>
+        </details>
+
         <!-- Submit -->
         <button class="btn btn--primary btn--full" type="submit" id="calculate-btn">
           <span>▶</span>
@@ -126,94 +243,19 @@
         </button>
       </form>
 
-    </aside>
+    </div>
+  </aside>
 
-    <!-- ============ CENTER PANEL: 3D Animation & Plotly Chart ============ -->
-    <section class="dashboard-layout__center" aria-label="3D simulation and speed sweep">
-
-      <!-- Three.js 3D Interlocking Spur Gears -->
-      <div class="card card--glow">
-        <div class="card__header">
-          <div>
-            <div class="card__title" style="display:flex; align-items:center; gap:8px;">
-              <span>🌀 3D Gear Interlock Workbench</span>
-              <span class="regime-tag" id="workbench-status" style="font-size:0.65rem; padding:2px 6px;">Idle</span>
-            </div>
-            <div class="card__subtitle">Spur gear profiles rotating dynamically (Three.js)</div>
-          </div>
-        </div>
-        
-        <canvas id="three-canvas" aria-label="3D animated gear simulation"
-                style="width:100%; height:420px; border-radius:8px; display:block; background:#050b18;">
-        </canvas>
-        
-        <div class="velocity-legend" aria-label="Gear labels" style="justify-content:center; gap:16px;">
-          <span style="color:#60a5fa">● Pinion (Z₁)</span>
-          <span style="color:#f59e0b">● Gear (Coroa Z₂)</span>
-          <span style="color:#34d399">● EHL Oil Film</span>
-        </div>
-
-        <!-- 3D Camera Controls -->
-        <div class="camera-controls" style="margin-top:16px; padding:12px; background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md);">
-          <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-            <span>🎥 Camera Viewpoint (XYZ)</span>
-            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.72rem; color:var(--text-muted);">
-              <input type="checkbox" id="auto-orbit" style="cursor:pointer; accent-color:var(--accent-primary);"> Auto-Orbit
-            </label>
-          </div>
-          
-          <!-- View Presets -->
-          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:10px;">
-            <button type="button" class="btn btn--outline" id="btn-view-iso" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Iso</button>
-            <button type="button" class="btn btn--outline" id="btn-view-side" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Front (Z)</button>
-            <button type="button" class="btn btn--outline" id="btn-view-top" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Top (Y)</button>
-            <button type="button" class="btn btn--outline" id="btn-view-inlet" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Side (X)</button>
-          </div>
-
-          <!-- XYZ Sliders -->
-          <div style="display:flex; flex-direction:column; gap:6px;">
-            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
-              <span style="width:12px; color:#ef4444; font-weight:bold;">X</span>
-              <input type="range" id="cam-slider-x" min="-6" max="6" step="0.05" value="0" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#ef4444;">
-              <span id="cam-val-x" style="width:28px; text-align:right;">0.00</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
-              <span style="width:12px; color:#10b981; font-weight:bold;">Y</span>
-              <input type="range" id="cam-slider-y" min="-6" max="6" step="0.05" value="0.0" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#10b981;">
-              <span id="cam-val-y" style="width:28px; text-align:right;">0.00</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
-              <span style="width:12px; color:#3b82f6; font-weight:bold;">Z</span>
-              <input type="range" id="cam-slider-z" min="-6" max="6" step="0.05" value="3.5" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#3b82f6;">
-              <span id="cam-val-z" style="width:28px; text-align:right;">3.50</span>
-            </div>
-          </div>
-        </div>
-        <p style="font-size:0.7rem; color:var(--text-muted); margin-top:8px; text-align:center;">
-          * Mesh sized relative to pitch diameters. Interlocks and spins in sync based on speed.
-        </p>
+  <aside class="floating-panel floating-panel--right" id="results-panel" role="dialog" aria-label="Results panel" aria-hidden="true">
+    <div class="floating-panel__header">
+      <span class="floating-panel__title">📊 Results</span>
+      <div class="floating-panel__actions">
+        <button class="floating-panel__pin" id="pin-results" aria-label="Pin panel" aria-pressed="false">📌</button>
+        <button class="floating-panel__export" id="export-results">⬇ Export</button>
+        <button class="floating-panel__close" aria-label="Close">✕</button>
       </div>
-
-      <!-- Plotly Chart — Sweep -->
-      <div class="card">
-        <div class="card__header">
-          <div>
-            <div class="card__title">📉 EHL Lubrication Zone Sweep</div>
-            <div class="card__subtitle">Lambda Parameter (Λ) vs. Operating Speed (RPM)</div>
-          </div>
-        </div>
-        <div id="plotly-chart" style="height:260px; border-radius:8px; overflow:hidden;">
-          <div class="chart-placeholder" id="chart-placeholder">
-            <span>📉</span>
-            <p>Solve gear parameters to render speed sweep</p>
-          </div>
-        </div>
-      </div>
-
-    </section>
-
-    <!-- ============ RIGHT PANEL: Calculations & Table ============ -->
-    <aside class="dashboard-layout__right" id="right-panel" role="complementary" aria-label="Calculation results and stats">
+    </div>
+    <div class="floating-panel__body">
 
       <!-- KPI Cards stacked in a neat vertical grid -->
       <div class="kpi-grid" id="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -253,13 +295,13 @@
         </table>
       </div>
 
-    </aside>
-
-  </div>
+    </div>
+  </aside>
 </div>
 
 <style>
   .tribology-dashboard { max-width: 1650px; margin: 0 auto; }
+  .sim-fullscreen { display: flex; flex-direction: column; gap: 24px; width: 100%; }
   .kpi-card--ratio { border-left-color: var(--accent-primary); }
   .kpi-card--velocity { border-left-color: var(--accent-info); }
   .kpi-card--lambda { border-left-color: var(--accent-secondary); }
@@ -331,11 +373,26 @@ const FormManager = {
       this.handleSubmit();
     });
 
+    // Live recalculation: debounced re-solve as the user edits any numeric
+    // input, plus an immediate re-solve when a material preset changes.
+    // The button remains as an immediate fallback.
+    let debounceTimer = null;
+    this.form.querySelectorAll('input[type="number"]').forEach(input => {
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => this.handleSubmit(true), 350);
+      });
+    });
+    document.getElementById('pinion-material')?.addEventListener('change', () => this.handleSubmit(true));
+    document.getElementById('gear-material')?.addEventListener('change', () => this.handleSubmit(true));
+
     // Run initial solve
     this.handleSubmit();
   },
 
   getInputs() {
+    const pinionMatOpt = document.getElementById('pinion-material').selectedOptions[0];
+    const gearMatOpt = document.getElementById('gear-material').selectedOptions[0];
     return {
       module_mm:      parseFloat(document.getElementById('module_mm').value),
       pinion_teeth:   parseInt(document.getElementById('pinion_teeth').value),
@@ -343,33 +400,42 @@ const FormManager = {
       pinion_rpm:     parseFloat(document.getElementById('pinion_rpm').value),
       viscosity_pa_s: parseFloat(document.getElementById('viscosity_pa_s').value),
       roughness_um:   parseFloat(document.getElementById('roughness_um').value),
-      load_n:         parseFloat(document.getElementById('load_n').value)
+      load_n:         parseFloat(document.getElementById('load_n').value),
+      pinion_youngs_modulus_gpa: parseFloat(pinionMatOpt.dataset.e),
+      pinion_poissons_ratio:     parseFloat(pinionMatOpt.dataset.nu),
+      gear_youngs_modulus_gpa:   parseFloat(gearMatOpt.dataset.e),
+      gear_poissons_ratio:       parseFloat(gearMatOpt.dataset.nu),
     };
   },
 
-  async handleSubmit() {
+  async handleSubmit(auto = false) {
     const inputs = this.getInputs();
-    
+
     this.calculateBtn.disabled = true;
-    document.getElementById('btn-text').textContent = 'Solving…';
-    showLoading('Solving spur gear geometry & Dowson-Higginson EHL equations…');
+    if (!auto) {
+      document.getElementById('btn-text').textContent = 'Solving…';
+      showLoading('Solving spur gear geometry & Dowson-Higginson EHL equations…');
+    }
 
     try {
       const response = await API.post('/calculate/', inputs);
       const result = response.data;
-      
+
       UIUpdater.updateAll(inputs, result);
       PlotlyChart.render(result, inputs.roughness_um);
       ThreeGears.updateGears(inputs.module_mm, inputs.pinion_teeth, inputs.gear_teeth, inputs.pinion_rpm, result.ehl.lambda_parameter, result.ehl.regime_code);
-      
-      showToast('Tribology & Gear equations solved successfully!', 'success');
+      window.FloatingPanel?.markUpdated('results');
+
+      if (!auto) showToast('Tribology & Gear equations solved successfully!', 'success');
     } catch (e) {
       console.error(e);
       showToast('Error calculating EHL properties. Check constraints.', 'error');
     } finally {
       this.calculateBtn.disabled = false;
-      document.getElementById('btn-text').textContent = 'Solve Sizing & EHL';
-      hideLoading();
+      if (!auto) {
+        document.getElementById('btn-text').textContent = 'Solve Sizing & EHL';
+        hideLoading();
+      }
     }
   }
 };
@@ -448,17 +514,14 @@ const PlotlyChart = {
       line: { color: '#a78bfa', width: 3 },
     };
 
-    // Current operating point marker
+    // Current operating point marker (actual pinion RPM from the form)
     const opTrace = {
-      x: [result.ehl.entrainment_velocity_m_s ? result.ehl.entrainment_velocity_m_s * 60000 / (Math.PI * result.geometry.pitch_diameter_pinion_mm) : 1500.0],
+      x: [parseFloat(document.getElementById('pinion_rpm').value)],
       y: [result.ehl.lambda_parameter],
       mode: 'markers',
       name: 'Operating Point',
       marker: { color: '#ffffff', size: 10, line: { color: '#8b5cf6', width: 2 } }
     };
-    
-    // Read user actual pinion RPM
-    opTrace.x = [parseFloat(document.getElementById('pinion_rpm').value)];
 
     const layout = {
       paper_bgcolor: 'transparent',
@@ -641,10 +704,40 @@ const ThreeGears = {
       slider?.addEventListener('input', handleSliderChange);
     });
 
+    // Hover tooltip: raycast against the pinion/gear meshes and show the
+    // geometry/speed data already computed for that gear (no API call).
+    this.raycaster = new THREE.Raycaster();
+    this.mouse = new THREE.Vector2();
+    canvas.addEventListener('pointermove', (e) => this.onPointerMove(e));
+    canvas.addEventListener('pointerleave', () => window.ThreeTooltip?.hide());
+
     // Start rendering loop
     this.animate();
 
     window.addEventListener('resize', () => this.onResize());
+  },
+
+  onPointerMove(e) {
+    if (!this.pinionMesh || !this.gearMesh) { window.ThreeTooltip?.hide(); return; }
+    const canvas = this.renderer.domElement;
+    const rect = canvas.getBoundingClientRect();
+    this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+    const hits = this.raycaster.intersectObjects([this.pinionMesh, this.gearMesh]);
+
+    if (hits.length > 0) {
+      const isPinion = hits[0].object === this.pinionMesh;
+      const teeth = isPinion ? this.pinionTeeth : this.gearTeeth;
+      const diameterMm = this.module * teeth;
+      const rpm = isPinion ? this.rpm : (this.rpm * this.pinionTeeth / this.gearTeeth);
+      const html = `<strong>${isPinion ? 'Pinion' : 'Gear'}</strong> (Z=${teeth})<br>`
+        + `d = ${diameterMm.toFixed(1)} mm &middot; ${rpm.toFixed(0)} RPM`;
+      window.ThreeTooltip?.show(html, e.clientX, e.clientY);
+      return;
+    }
+    window.ThreeTooltip?.hide();
   },
 
   createGearGeometry(pitchRadius, numTeeth, thickness) {
@@ -700,8 +793,9 @@ const ThreeGears = {
     this.module = module;
     this.pinionTeeth = Z1;
     this.gearTeeth = Z2;
+    this.rpm = rpm;
     // Rotation speed based on RPM input
-    this.pinionSpeed = (rpm / 1500.0) * 0.4; 
+    this.pinionSpeed = (rpm / 1500.0) * 0.4;
 
     // 2. Standard pitch diameters
     const d1 = module * Z1;
@@ -829,6 +923,43 @@ const ThreeGears = {
 document.addEventListener('DOMContentLoaded', () => {
   FormManager.init();
   ThreeGears.init();
+
+  if (window.TRANSLATIONS) {
+    Object.assign(window.TRANSLATIONS.pt, {
+      "tribology-title": "Geometria de Engrenagens & Solver de Tribologia",
+      "tribology-desc": "Dimensionamento de engrenagens retas (AGMA/ISO) · Lubrificação Elastohidrodinâmica (EHL) de Dowson-Higginson · Análise do regime de lubrificação · Simulação 3D interativa de engrenamento em Three.js",
+      "tribology-presets-title": "Predefinidos do Projeto",
+      "tribology-presets-sub": "Carregar parâmetros de aplicação de engrenagens",
+      "tribology-params-title": "Parâmetros das Engrenagens",
+      "tribology-params-sub": "Configure a geometria e força de carga"
+    });
+
+    Object.assign(window.TRANSLATIONS.en, {
+      "tribology-title": "Gears Geometry & Tribology Solver",
+      "tribology-desc": "Spur gear dimensioning (AGMA/ISO) · Dowson-Higginson Elastohydrodynamic Lubrication (EHL) · Lubrication regime analysis · Plotly.js speed sweep · Three.js 3D interlocking gear simulation",
+      "tribology-presets-title": "Design Presets",
+      "tribology-presets-sub": "Load gear application parameters",
+      "tribology-params-title": "Gear Parameters",
+      "tribology-params-sub": "Configure geometry and load"
+    });
+
+    Object.assign(window.TRANSLATIONS.ja, {
+      "tribology-title": "くるくる歯車とすべる油のひみつ",
+      "tribology-desc": "かみあう２つの歯車のサイズを計算して、あいだに入れた油（オイル）が金属どうしをこすれあうのを防ぐひみつ（油膜）をしらべよう！",
+      "tribology-presets-title": "つかう歯車セットを選ぶ",
+      "tribology-presets-sub": "はやい歯車、ちから強い歯車などに変えられるよ",
+      "tribology-params-title": "歯車と油の設定",
+      "tribology-params-sub": "歯の数や回すスピード、油のドロドロ度を決めてね"
+    });
+
+    // Auto-apply current language
+    const currentLang = localStorage.getItem('app-language') || 'pt';
+    window.translatePage(currentLang);
+  }
+
+  window.addEventListener('language-changed', (e) => {
+    window.translatePage(e.detail);
+  });
 });
 </script>
 {% endblock %}

@@ -8,11 +8,21 @@
 {% block content %}
 <div class="physics-dashboard" id="physics-dashboard">
 
+  <!-- Sub-navigation Tabs -->
+  <div class="physics-tabs" style="display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+    <a href="{% url 'physics:physics-index' %}" class="btn btn--outline" style="display: flex; align-items: center; gap: 8px; border-color: var(--accent-primary); background: rgba(139,92,246,0.12); color: var(--text-primary); box-shadow: var(--glow-violet); font-weight: 600;">
+      <span>🚀</span> Projectile Motion
+    </a>
+    <a href="{% url 'physics:magnetism-index' %}" class="btn btn--outline" style="display: flex; align-items: center; gap: 8px;">
+      <span>🧲</span> Magnetism &amp; Motors
+    </a>
+  </div>
+
   <!-- Page Header -->
   <div class="page-header">
     <div>
-      <h1 class="page-header__title">Projectile Motion with Air Resistance</h1>
-      <p class="page-header__desc">
+      <h1 class="page-header__title" data-i18n="physics-proj-title">Projectile Motion with Air Resistance</h1>
+      <p class="page-header__desc" data-i18n="physics-proj-desc">
         Quadratic drag force ($F_d = -\frac{1}{2} C_d \rho A v^2$) · Runge-Kutta numerical integration ·
         Vacuum trajectory comparison · Plotly.js plotting · Three.js 3D flight path
       </p>
@@ -27,18 +37,115 @@
     </div>
   </div>
 
-  <!-- Main Layout: 3-column grid -->
-  <div class="dashboard-layout">
+  <!-- ============ FULLSCREEN SIMULATION: Three.js + Plotly ============ -->
+  <section class="sim-fullscreen" aria-label="3D flight simulation and profiles">
 
-    <!-- ============ LEFT PANEL: Input Form ============ -->
-    <aside class="dashboard-layout__left" id="input-panel" role="complementary" aria-label="Calculation inputs">
+    <!-- Three.js Trajectory Visualizer -->
+    <div class="card card--glow">
+      <div class="card__header">
+        <div>
+          <div class="card__title" style="display:flex; align-items:center; gap:8px;">
+            <span>🌀 3D Flight Path Workbench</span>
+            <span class="regime-tag" id="workbench-status" style="font-size:0.65rem; padding:2px 6px;">Idle</span>
+          </div>
+          <div class="card__subtitle">3D animated projectile simulation (Three.js)</div>
+        </div>
+        <button class="btn btn--outline" id="toggle-animation" style="padding:6px 12px; font-size:0.75rem;">
+          ⏸ Pause
+        </button>
+      </div>
+
+      <div class="sim-canvas-wrap">
+        <canvas id="three-canvas" aria-label="3D animated projectile flight simulation"
+                style="border-radius:8px; background:#050b18;">
+        </canvas>
+
+        <!-- 3D Camera Controls (floating overlay on the canvas corner) -->
+        <div class="camera-controls camera-controls--overlay">
+          <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span data-i18n="cam-title">🎥 Camera Viewpoint (XYZ)</span>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.72rem; color:var(--text-muted);">
+              <input type="checkbox" id="auto-orbit" style="cursor:pointer; accent-color:var(--accent-primary);"> <span data-i18n="cam-lbl-orbit">Auto-Orbit</span>
+            </label>
+          </div>
+
+          <!-- View Presets -->
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:10px;">
+            <button type="button" class="btn btn--outline" id="btn-view-iso" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;" data-i18n="cam-btn-iso">Iso</button>
+            <button type="button" class="btn btn--outline" id="btn-view-side" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;" data-i18n="cam-btn-side">Side (Z)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-top" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;" data-i18n="cam-btn-top">Top (Y)</button>
+            <button type="button" class="btn btn--outline" id="btn-view-inlet" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;" data-i18n="cam-btn-inlet">Inlet (X)</button>
+          </div>
+
+          <!-- XYZ Sliders -->
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:50px; color:#ef4444; font-weight:bold;" data-i18n="cam-pos-x">X</span>
+              <input type="range" id="cam-slider-x" min="-6" max="6" step="0.05" value="0" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#ef4444;">
+              <span id="cam-val-x" style="width:28px; text-align:right;">0.00</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:50px; color:#10b981; font-weight:bold;" data-i18n="cam-pos-y">Y</span>
+              <input type="range" id="cam-slider-y" min="-6" max="6" step="0.05" value="1.5" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#10b981;">
+              <span id="cam-val-y" style="width:28px; text-align:right;">1.50</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
+              <span style="width:50px; color:#3b82f6; font-weight:bold;" data-i18n="cam-pos-z">Z</span>
+              <input type="range" id="cam-slider-z" min="-6" max="6" step="0.05" value="4" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#3b82f6;">
+              <span id="cam-val-z" style="width:28px; text-align:right;">4.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="velocity-legend" aria-label="Component scales">
+        <span style="color:#8b5cf6">● Ideal path</span>
+        <span style="color:#ef4444">● Drag path</span>
+      </div>
+
+      <p style="font-size:0.7rem; color:var(--text-muted); margin-top:8px; text-align:center;">
+        * Trajectory scaled down to fit standard viewport bounds.
+      </p>
+    </div>
+
+    <!-- Plotly Chart — Trajectory Curve -->
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <div class="card__title">📉 Trajectory Profiles Comparison</div>
+          <div class="card__subtitle">Comparison of vacuum trajectory vs. real flight path with air drag</div>
+        </div>
+      </div>
+      <div id="plotly-chart" style="height:340px; border-radius:8px; overflow:hidden;">
+        <div class="chart-placeholder" id="chart-placeholder">
+          <span>📉</span>
+          <p>Solve equations to render chart</p>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============ FLOATING PANELS: Config (left) / Results (right) ============ -->
+  <button class="fab fab--config" id="fab-config" data-panel="config" aria-label="Open configuration" aria-expanded="false" aria-controls="config-panel">⚙️</button>
+  <button class="fab fab--results" id="fab-results" data-panel="results" aria-label="Open results" aria-expanded="false" aria-controls="results-panel">📊</button>
+
+  <aside class="floating-panel floating-panel--left" id="config-panel" role="dialog" aria-label="Configuration panel" aria-hidden="true">
+    <div class="floating-panel__header">
+      <span class="floating-panel__title">⚙️ Configuration</span>
+      <div class="floating-panel__actions">
+        <button class="floating-panel__pin" id="pin-config" aria-label="Pin panel" aria-pressed="false">📌</button>
+        <button class="floating-panel__close" aria-label="Close">✕</button>
+      </div>
+    </div>
+    <div class="floating-panel__body">
 
       <!-- Preset Projectiles -->
-      <div class="card" style="margin-bottom:16px;">
+      <div class="card">
         <div class="card__header">
           <div>
-            <div class="card__title">Projectile Preset</div>
-            <div class="card__subtitle">Load properties of standard objects</div>
+            <div class="card__title" data-i18n="physics-proj-preset-title">Projectile Preset</div>
+            <div class="card__subtitle" data-i18n="physics-proj-preset-sub">Load properties of standard objects</div>
           </div>
         </div>
         <div class="form-group" style="margin-bottom:0">
@@ -55,8 +162,8 @@
       <form class="card" id="projectile-form" novalidate aria-label="Projectile parameters">
         <div class="card__header">
           <div>
-            <div class="card__title">Launch Parameters</div>
-            <div class="card__subtitle">Configure physical properties</div>
+            <div class="card__title" data-i18n="physics-proj-params-title">Launch Parameters</div>
+            <div class="card__subtitle" data-i18n="physics-proj-params-sub">Configure physical properties</div>
           </div>
         </div>
 
@@ -65,7 +172,7 @@
 
         <div class="form-group">
           <label class="form-label" for="velocity_m_s">
-            Initial Velocity <span class="unit-tag">m/s</span>
+            <span data-i18n="physics-proj-lbl-vel">Initial Velocity</span> <span class="unit-tag">m/s</span>
           </label>
           <input class="form-input" type="number" id="velocity_m_s" name="velocity_m_s"
                  value="45.0" min="0.1" max="1000.0" step="1.0">
@@ -73,7 +180,7 @@
 
         <div class="form-group">
           <label class="form-label" for="angle_deg">
-            Launch Angle <span class="unit-tag">°</span>
+            <span data-i18n="physics-proj-lbl-ang">Launch Angle</span> <span class="unit-tag">°</span>
           </label>
           <input class="form-input" type="number" id="angle_deg" name="angle_deg"
                  value="45.0" min="0.1" max="89.9" step="0.5">
@@ -84,7 +191,7 @@
 
         <div class="form-group">
           <label class="form-label" for="mass_kg">
-            Mass <span class="unit-tag">kg</span>
+            <span data-i18n="physics-proj-lbl-mass">Mass</span> <span class="unit-tag">kg</span>
           </label>
           <input class="form-input" type="number" id="mass_kg" name="mass_kg"
                  value="0.145" min="0.001" max="10000.0" step="0.001">
@@ -92,7 +199,7 @@
 
         <div class="form-group">
           <label class="form-label" for="diameter_m">
-            Diameter <span class="unit-tag">m</span>
+            <span data-i18n="physics-proj-lbl-dia">Diameter</span> <span class="unit-tag">m</span>
           </label>
           <input class="form-input" type="number" id="diameter_m" name="diameter_m"
                  value="0.074" min="0.001" max="10.0" step="0.001">
@@ -100,110 +207,41 @@
 
         <div class="form-group">
           <label class="form-label" for="drag_coefficient">
-            Drag Coefficient (Cd) <span class="unit-tag">dim</span>
+            <span data-i18n="physics-proj-lbl-drag">Drag Coefficient (Cd)</span> <span class="unit-tag">dim</span>
           </label>
           <input class="form-input" type="number" id="drag_coefficient" name="drag_coefficient"
                  value="0.30" min="0.0" max="5.0" step="0.01">
         </div>
 
         <!-- Submit -->
-        <button class="btn btn--primary btn--full" type="submit" id="calculate-btn">
+        <button class="btn btn--primary btn--full" type="submit" id="calculate-btn" data-i18n="physics-proj-btn-calc">
           <span>▶</span>
           <span id="btn-text">Solve Trajectory</span>
         </button>
       </form>
 
-    </aside>
+    </div>
+  </aside>
 
-    <!-- ============ CENTRE PANEL: Three.js + Plotly ============ -->
-    <section class="dashboard-layout__center" aria-label="3D flight simulation and profiles">
-
-      <!-- Three.js Trajectory Visualizer -->
-      <div class="card card--glow">
-        <div class="card__header">
-          <div>
-            <div class="card__title" style="display:flex; align-items:center; gap:8px;">
-              <span>🌀 3D Flight Path Workbench</span>
-              <span class="regime-tag" id="workbench-status" style="font-size:0.65rem; padding:2px 6px;">Idle</span>
-            </div>
-            <div class="card__subtitle">3D animated projectile simulation (Three.js)</div>
-          </div>
-          <button class="btn btn--outline" id="toggle-animation" style="padding:6px 12px; font-size:0.75rem;">
-            ⏸ Pause
-          </button>
-        </div>
-        
-        <canvas id="three-canvas" aria-label="3D animated projectile flight simulation"
-                style="width:100%; height:420px; border-radius:8px; display:block; background:#050b18;">
-        </canvas>
-        
-        <div class="velocity-legend" aria-label="Component scales">
-          <span style="color:#8b5cf6">● Ideal path</span>
-          <span style="color:#ef4444">● Drag path</span>
-        </div>
-
-        <!-- 3D Camera Controls -->
-        <div class="camera-controls" style="margin-top:16px; padding:12px; background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md);">
-          <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-            <span>🎥 Camera Viewpoint (XYZ)</span>
-            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.72rem; color:var(--text-muted);">
-              <input type="checkbox" id="auto-orbit" style="cursor:pointer; accent-color:var(--accent-primary);"> Auto-Orbit
-            </label>
-          </div>
-          
-          <!-- View Presets -->
-          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:10px;">
-            <button type="button" class="btn btn--outline" id="btn-view-iso" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Iso</button>
-            <button type="button" class="btn btn--outline" id="btn-view-side" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Side (Z)</button>
-            <button type="button" class="btn btn--outline" id="btn-view-top" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Top (Y)</button>
-            <button type="button" class="btn btn--outline" id="btn-view-inlet" style="padding:4px 6px; font-size:0.68rem; justify-content:center; min-height:auto;">Inlet (X)</button>
-          </div>
-
-          <!-- XYZ Sliders -->
-          <div style="display:flex; flex-direction:column; gap:6px;">
-            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
-              <span style="width:12px; color:#ef4444; font-weight:bold;">X</span>
-              <input type="range" id="cam-slider-x" min="-6" max="6" step="0.05" value="0" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#ef4444;">
-              <span id="cam-val-x" style="width:28px; text-align:right;">0.00</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
-              <span style="width:12px; color:#10b981; font-weight:bold;">Y</span>
-              <input type="range" id="cam-slider-y" min="-6" max="6" step="0.05" value="1.5" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#10b981;">
-              <span id="cam-val-y" style="width:28px; text-align:right;">1.50</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; font-size:0.7rem; font-family:var(--font-mono);">
-              <span style="width:12px; color:#3b82f6; font-weight:bold;">Z</span>
-              <input type="range" id="cam-slider-z" min="-6" max="6" step="0.05" value="4" style="flex:1; height:4px; background:var(--bg-input); border-radius:2px; accent-color:#3b82f6;">
-              <span id="cam-val-z" style="width:28px; text-align:right;">4.00</span>
-            </div>
-          </div>
-        </div>
-
-        <p style="font-size:0.7rem; color:var(--text-muted); margin-top:8px; text-align:center;">
-          * Trajectory scaled down to fit standard viewport bounds.
-        </p>
+  <aside class="floating-panel floating-panel--right" id="results-panel" role="dialog" aria-label="Results panel" aria-hidden="true">
+    <div class="floating-panel__header">
+      <span class="floating-panel__title">📊 Results</span>
+      <div class="floating-panel__actions">
+        <button class="floating-panel__pin" id="pin-results" aria-label="Pin panel" aria-pressed="false">📌</button>
+        <button class="floating-panel__export" id="export-results">⬇ Export</button>
+        <button class="floating-panel__close" aria-label="Close">✕</button>
       </div>
+    </div>
+    <div class="floating-panel__body">
 
-      <!-- Plotly Chart — Trajectory Curve -->
-      <div class="card">
-        <div class="card__header">
-          <div>
-            <div class="card__title">📉 Trajectory Profiles Comparison</div>
-            <div class="card__subtitle">Comparison of vacuum trajectory vs. real flight path with air drag</div>
-          </div>
-        </div>
-        <div id="plotly-chart" style="height:340px; border-radius:8px; overflow:hidden;">
-          <div class="chart-placeholder" id="chart-placeholder">
-            <span>📉</span>
-            <p>Solve equations to render chart</p>
-          </div>
-        </div>
+      <!-- Comparison mode: pin the current trajectory as a reference to
+           see how the next parameter change affects it, drawn dashed/faded
+           alongside the live curve in both the chart and the 3D view. -->
+      <div class="card" id="comparison-card">
+        <div class="card__title" style="margin-bottom:8px; font-size:0.85rem;">📌 Comparison Mode</div>
+        <p style="font-size:0.72rem; color:var(--text-muted); margin-bottom:10px;">Fix the current trajectory as a reference, then change a parameter to compare.</p>
+        <button type="button" class="btn btn--outline btn--full" id="btn-toggle-reference" style="font-size:0.78rem;">📌 Fix as Reference</button>
       </div>
-
-    </section>
-
-    <!-- ============ RIGHT PANEL: Calculations & Table ============ -->
-    <aside class="dashboard-layout__right" id="right-panel" role="complementary" aria-label="Calculation results and stats">
 
       <!-- KPI Cards -->
       <div class="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -240,13 +278,13 @@
         </table>
       </div>
 
-    </aside>
-
-  </div>
+    </div>
+  </aside>
 </div>
 
 <style>
   .physics-dashboard { max-width: 1650px; margin: 0 auto; }
+  .sim-fullscreen { display: flex; flex-direction: column; gap: 24px; width: 100%; }
   .kpi-card--range { border-left-color: var(--accent-secondary); }
   .kpi-card--height { border-left-color: var(--accent-info); }
   .kpi-card--time { border-left-color: var(--accent-primary); }
@@ -258,6 +296,13 @@
 <script src="{% static 'core/vendor/OrbitControls.js' %}"></script>
 
 <script>
+// -----------------------------------------------------------------
+// 0. COMPARISON MODE — pinned reference result, shared by the Plotly
+//    chart and the Three.js scene (both read this when rendering).
+// -----------------------------------------------------------------
+let referenceResult = null;
+let lastResult = null;
+
 // -----------------------------------------------------------------
 // 1. API CLIENT
 // -----------------------------------------------------------------
@@ -312,6 +357,17 @@ const FormManager = {
       this.handleSubmit();
     });
 
+    // Live recalculation: debounced re-solve as the user edits/drags any
+    // numeric input, so the trajectory updates without an explicit click on
+    // "Calculate". The button remains as an immediate fallback.
+    let debounceTimer = null;
+    this.form.querySelectorAll('input[type="number"]').forEach(input => {
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => this.handleSubmit(true), 350);
+      });
+    });
+
     // Solve initially
     this.handleSubmit();
   },
@@ -326,27 +382,32 @@ const FormManager = {
     };
   },
 
-  async handleSubmit() {
+  async handleSubmit(auto = false) {
     const data = this.getInputs();
-    
+
     this.calculateBtn.disabled = true;
-    showLoading('Integrating launch trajectory equations…');
+    // Auto (debounced, live-slider) recalculations skip the full-screen
+    // overlay and success toast — those are for the explicit "Calculate"
+    // click — so continuous typing/dragging doesn't flash the UI.
+    if (!auto) showLoading('Integrating launch trajectory equations…');
 
     try {
       const response = await API.post('/projectile/calculate/', data);
       const result = response.data;
+      lastResult = result;
 
       UIUpdater.updateAll(result, data);
       PlotlyChart.render(result);
       ThreeTrajectory.buildTrajectory(result);
+      window.FloatingPanel?.markUpdated('results');
 
-      showToast('Trajectory equations solved!', 'success');
+      if (!auto) showToast('Trajectory equations solved!', 'success');
     } catch (e) {
       console.error(e);
       showToast('Solving failed. Check parameter constraints.', 'error');
     } finally {
       this.calculateBtn.disabled = false;
-      hideLoading();
+      if (!auto) hideLoading();
     }
   }
 };
@@ -409,6 +470,22 @@ const PlotlyChart = {
       fillcolor: 'rgba(239,68,68,0.04)'
     };
 
+    const traces = [traceIdeal, traceReal];
+
+    // Comparison mode: overlay the pinned reference trajectory, faded and
+    // dashed, so the effect of the latest parameter change is visible
+    // against the previous run.
+    if (referenceResult) {
+      traces.push({
+        x: referenceResult.x_drag,
+        y: referenceResult.y_drag,
+        mode: 'lines',
+        name: 'Reference (Air Drag)',
+        line: { color: '#94a3b8', width: 2, dash: 'dot' },
+        opacity: 0.6,
+      });
+    }
+
     const layout = {
       paper_bgcolor: 'transparent',
       plot_bgcolor:  '#0d1526',
@@ -431,10 +508,10 @@ const PlotlyChart = {
     document.getElementById('chart-placeholder')?.remove();
 
     if (!this.rendered) {
-      Plotly.newPlot('plotly-chart', [traceIdeal, traceReal], layout, { responsive: true, displaylogo: false });
+      Plotly.newPlot('plotly-chart', traces, layout, { responsive: true, displaylogo: false });
       this.rendered = true;
     } else {
-      Plotly.react('plotly-chart', [traceIdeal, traceReal], layout, { responsive: true, displaylogo: false });
+      Plotly.react('plotly-chart', traces, layout, { responsive: true, displaylogo: false });
     }
   }
 };
@@ -453,8 +530,10 @@ const ThreeTrajectory = {
   grid: null,
 
   animating: true,
-  animStep: 0,
   dragCoords: [],
+  dragDuration: 0,
+  animElapsed: 0,
+  _lastFrameTime: null,
   scaleFactor: 1.0,
 
   // Camera states
@@ -574,6 +653,7 @@ const ThreeTrajectory = {
     if (this.idealPathLine) this.scene.remove(this.idealPathLine);
     if (this.realPathLine) this.scene.remove(this.realPathLine);
     if (this.projectile) this.scene.remove(this.projectile);
+    if (this.referencePathLine) { this.scene.remove(this.referencePathLine); this.referencePathLine = null; }
 
     const xReal = result.x_drag;
     const yReal = result.y_drag;
@@ -609,6 +689,20 @@ const ThreeTrajectory = {
     this.realPathLine = new THREE.Line(realGeo, realMat);
     this.scene.add(this.realPathLine);
 
+    // Comparison mode: draw the pinned reference trajectory (faded grey),
+    // reusing the current scaleFactor so both curves share the same axes.
+    if (referenceResult) {
+      const refPoints = [];
+      const xRef = referenceResult.x_drag, yRef = referenceResult.y_drag;
+      for (let i = 0; i < xRef.length; i++) {
+        refPoints.push(new THREE.Vector3(xRef[i] * this.scaleFactor - 2, yRef[i] * this.scaleFactor - 0.5, 0));
+      }
+      const refGeo = new THREE.BufferGeometry().setFromPoints(refPoints);
+      const refMat = new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.35 });
+      this.referencePathLine = new THREE.Line(refGeo, refMat);
+      this.scene.add(this.referencePathLine);
+    }
+
     // Create Projectile (Sphere)
     const sphereGeo = new THREE.SphereGeometry(0.08, 32, 32);
     const sphereMat = new THREE.MeshPhongMaterial({ color: 0xef4444, emissive: 0x5a1a1a, shininess: 80 });
@@ -616,7 +710,11 @@ const ThreeTrajectory = {
     this.projectile.position.copy(this.dragCoords[0] || new THREE.Vector3(-2, -0.5, 0));
     this.scene.add(this.projectile);
 
-    this.animStep = 0;
+    // Real flight duration drives playback speed, so a 0.5s launch and a 5s
+    // launch no longer animate at the same on-screen pace.
+    this.dragDuration = Math.max(result.stats.time_drag_s || 0, 1e-3);
+    this.animElapsed = 0;
+    this._lastFrameTime = null;
   },
 
   animate() {
@@ -672,12 +770,22 @@ const ThreeTrajectory = {
       }
     }
 
-    // 4. Animate sphere along flight path
-    if (this.projectile && this.dragCoords.length > 0) {
-      this.projectile.position.copy(this.dragCoords[this.animStep]);
-      
-      // Increment animation step
-      this.animStep = (this.animStep + 1) % this.dragCoords.length;
+    // 4. Animate sphere along flight path, paced by the real flight time
+    // (time_drag_s) rather than a fixed number of frames.
+    if (this.projectile && this.dragCoords.length > 1 && this.dragDuration) {
+      const now = performance.now();
+      const dtReal = this._lastFrameTime ? (now - this._lastFrameTime) / 1000 : 0;
+      this._lastFrameTime = now;
+
+      this.animElapsed = (this.animElapsed + dtReal) % this.dragDuration;
+      const frac = this.animElapsed / this.dragDuration;
+      const idxFloat = frac * (this.dragCoords.length - 1);
+      const i0 = Math.max(0, Math.min(this.dragCoords.length - 2, Math.floor(idxFloat)));
+      const i1 = i0 + 1;
+      const t = idxFloat - i0;
+      this.projectile.position.lerpVectors(this.dragCoords[i0], this.dragCoords[i1], t);
+    } else if (this.projectile && this.dragCoords.length > 0) {
+      this.projectile.position.copy(this.dragCoords[0]);
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -697,6 +805,77 @@ const ThreeTrajectory = {
 document.addEventListener('DOMContentLoaded', () => {
   FormManager.init();
   ThreeTrajectory.init();
+
+  // Comparison mode toggle
+  const refBtn = document.getElementById('btn-toggle-reference');
+  refBtn?.addEventListener('click', () => {
+    if (referenceResult) {
+      referenceResult = null;
+      refBtn.textContent = '📌 Fix as Reference';
+    } else if (lastResult) {
+      referenceResult = lastResult;
+      refBtn.textContent = '🗑 Clear Reference';
+    } else {
+      return;
+    }
+    PlotlyChart.render(lastResult);
+    ThreeTrajectory.buildTrajectory(lastResult);
+  });
+
+  if (window.TRANSLATIONS) {
+    Object.assign(window.TRANSLATIONS.pt, {
+      "physics-proj-title": "Lançamento de Projéteis",
+      "physics-proj-desc": "Estude a cinemática de projéteis com arrasto de ar clássico e gravidade usando integração Runge-Kutta de 4ª ordem.",
+      "physics-proj-preset-title": "Predefinidos de Projéteis",
+      "physics-proj-preset-sub": "Carregar propriedades de objetos padrão",
+      "physics-proj-params-title": "Parâmetros de Lançamento",
+      "physics-proj-params-sub": "Configure as propriedades físicas",
+      "physics-proj-lbl-vel": "Velocidade Inicial",
+      "physics-proj-lbl-ang": "Ângulo de Lançamento",
+      "physics-proj-lbl-mass": "Massa do Projétil",
+      "physics-proj-lbl-dia": "Diâmetro do Projétil",
+      "physics-proj-lbl-drag": "Coeficiente de Arrasto (Cd)",
+      "physics-proj-btn-calc": "Calcular Trajetória"
+    });
+    
+    Object.assign(window.TRANSLATIONS.en, {
+      "physics-proj-title": "Projectile Motion Simulator",
+      "physics-proj-desc": "Study projectile kinematics with classical air drag and gravity using 4th-order Runge-Kutta integration.",
+      "physics-proj-preset-title": "Projectile Presets",
+      "physics-proj-preset-sub": "Load properties of standard objects",
+      "physics-proj-params-title": "Launch Parameters",
+      "physics-proj-params-sub": "Configure physical properties",
+      "physics-proj-lbl-vel": "Initial Velocity",
+      "physics-proj-lbl-ang": "Launch Angle",
+      "physics-proj-lbl-mass": "Projectile Mass",
+      "physics-proj-lbl-dia": "Projectile Diameter",
+      "physics-proj-lbl-drag": "Drag Coefficient (Cd)",
+      "physics-proj-btn-calc": "Calculate Trajectory"
+    });
+
+    Object.assign(window.TRANSLATIONS.ja, {
+      "physics-proj-title": "大砲とびだせ！シミュレーター",
+      "physics-proj-desc": "空気のじゃま（抵抗）や重力があるなかで、大砲からうちだした弾がどう飛ぶか、スーパーコンピュータ（ルンゲクッタ法）で計算して軌道を見よう！",
+      "physics-proj-preset-title": "うちだすモノを選ぶ",
+      "physics-proj-preset-sub": "ボールや大砲の弾を設定できるよ",
+      "physics-proj-params-title": "うちあげる設定",
+      "physics-proj-params-sub": "スピードや角度を決めてみよう！",
+      "physics-proj-lbl-vel": "うちあげるスピード",
+      "physics-proj-lbl-ang": "うちあげる角度 (ど)",
+      "physics-proj-lbl-mass": "玉の重さ (kg)",
+      "physics-proj-lbl-dia": "玉の大きさ (m)",
+      "physics-proj-lbl-drag": "空気のじゃまレベル (Cd)",
+      "physics-proj-btn-calc": "計算スタート！"
+    });
+    
+    // Auto-apply current language
+    const currentLang = localStorage.getItem('app-language') || 'pt';
+    window.translatePage(currentLang);
+  }
+
+  window.addEventListener('language-changed', (e) => {
+    window.translatePage(e.detail);
+  });
 });
 </script>
 {% endblock %}

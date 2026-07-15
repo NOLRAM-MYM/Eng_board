@@ -304,3 +304,69 @@ def validate_positive_concentration(
             {field_name: f"Concentration cannot be negative. Got {value} mol/L."}
         )
     return value
+
+
+# ---------------------------------------------------------------------------
+# Structural / Materials
+# ---------------------------------------------------------------------------
+
+def validate_positive_youngs_modulus(value: float, field_name: str = 'youngs_modulus') -> float:
+    """
+    Ensure Young's modulus (E) is strictly positive.
+
+    Physical basis: material stiffness under Hooke's law cannot be zero or
+    negative — it would imply the material offers no (or negative) resistance
+    to elastic deformation.
+
+    Args:
+        value: Young's modulus in GPa.
+        field_name: Name used in the error message.
+
+    Raises:
+        ValidationError: If value ≤ 0.
+    """
+    if value <= 0:
+        raise ValidationError(
+            {field_name: f"Young's modulus must be strictly positive. Got {value} GPa."}
+        )
+    return value
+
+
+def validate_positive_second_moment(value: float, field_name: str = 'second_moment') -> float:
+    """
+    Ensure the second moment of area (I) is strictly positive.
+
+    Physical basis: I describes how a cross-section resists bending. A zero
+    or negative value has no physical cross-section and causes division by
+    zero in the EI bending stiffness term.
+
+    Args:
+        value: Second moment of area in m⁴.
+        field_name: Name used in the error message.
+
+    Raises:
+        ValidationError: If value ≤ 0.
+    """
+    if value <= 0:
+        raise ValidationError(
+            {field_name: f"Second moment of area (I) must be strictly positive. Got {value} m⁴."}
+        )
+    return value
+
+
+def validate_positive_load(value: float, field_name: str = 'load') -> float:
+    """
+    Ensure applied load magnitude is strictly positive.
+
+    Args:
+        value: Load magnitude (e.g. kN).
+        field_name: Name used in the error message.
+
+    Raises:
+        ValidationError: If value ≤ 0.
+    """
+    if value <= 0:
+        raise ValidationError(
+            {field_name: f"Load must be strictly positive. Got {value}."}
+        )
+    return value

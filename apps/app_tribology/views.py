@@ -26,6 +26,14 @@ class TribologyInputSerializer(serializers.Serializer):
     roughness_um = serializers.FloatField(default=0.5, min_value=0.01, max_value=50.0)
     load_n = serializers.FloatField(default=2000.0, min_value=1.0, max_value=1000000.0)
 
+    # Pinion/gear material properties — default to steel-on-steel (210 GPa,
+    # ν=0.3) for backward compatibility with callers that don't specify a
+    # material pair.
+    pinion_youngs_modulus_gpa = serializers.FloatField(default=210.0, min_value=1.0, max_value=1000.0)
+    pinion_poissons_ratio = serializers.FloatField(default=0.3, min_value=0.0, max_value=0.5)
+    gear_youngs_modulus_gpa = serializers.FloatField(default=210.0, min_value=1.0, max_value=1000.0)
+    gear_poissons_ratio = serializers.FloatField(default=0.3, min_value=0.0, max_value=0.5)
+
 
 class TribologyCalculateView(APIView):
     """
@@ -53,6 +61,10 @@ class TribologyCalculateView(APIView):
                 viscosity_pa_s=data['viscosity_pa_s'],
                 roughness_um=data['roughness_um'],
                 load_n=data['load_n'],
+                youngs_modulus_gpa=data['pinion_youngs_modulus_gpa'],
+                poissons_ratio=data['pinion_poissons_ratio'],
+                gear_youngs_modulus_gpa=data['gear_youngs_modulus_gpa'],
+                gear_poissons_ratio=data['gear_poissons_ratio'],
             )
             result = service.compute()
             return success_response(result)

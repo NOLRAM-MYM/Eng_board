@@ -14,11 +14,11 @@
   <!-- Hero Section -->
   <section class="dashboard-hero">
     <div class="dashboard-hero__content">
-      <h1 class="dashboard-hero__title">
+      <h1 class="dashboard-hero__title" data-i18n="home-hero-title">
         Scientific<br>
         <span class="gradient-text">Dashboard</span>
       </h1>
-      <p class="dashboard-hero__subtitle">
+      <p class="dashboard-hero__subtitle" data-i18n="home-subtitle">
         Professional simulation engine for Engineering, Chemistry, Fluid Dynamics,
         Materials Science, and Physics. Powered by Python's scientific ecosystem
         and visualised with Plotly &amp; Three.js.
@@ -49,7 +49,7 @@
 
   <!-- Module Cards Grid -->
   <section class="modules-grid" aria-labelledby="modules-heading">
-    <h2 id="modules-heading" class="section-title">Scientific Modules</h2>
+    <h2 id="modules-heading" class="section-title" data-i18n="home-section-title">Scientific Modules</h2>
 
     <div class="module-cards">
 
@@ -57,7 +57,7 @@
       <a href="{% url 'fluids:pipe-flow-page' %}" class="module-card module-card--fluid" id="module-card-fluids">
         <div class="module-card__icon" aria-hidden="true">💧</div>
         <div class="module-card__body">
-          <h3 class="module-card__title">Fluid Mechanics</h3>
+          <h3 class="module-card__title" data-i18n="nav-fluids">Fluid Mechanics</h3>
           <p class="module-card__desc">
             Pipe flow analysis, Reynolds number, Darcy-Weisbach pressure drop,
             Colebrook-White friction factor, velocity profiles.
@@ -74,7 +74,7 @@
       <a href="{% url 'materials:materials-index' %}" class="module-card module-card--materials" id="module-card-materials">
         <div class="module-card__icon" aria-hidden="true">🔩</div>
         <div class="module-card__body">
-          <h3 class="module-card__title">Materials &amp; FEA</h3>
+          <h3 class="module-card__title" data-i18n="nav-materials">Materials &amp; FEA</h3>
           <p class="module-card__desc">
             Finite Element Analysis, beam deflection, stress-strain curves,
             truss analysis, and material deformation simulation.
@@ -91,7 +91,7 @@
       <a href="{% url 'chemistry:chemistry-index' %}" class="module-card module-card--chemistry" id="module-card-chemistry">
         <div class="module-card__icon" aria-hidden="true">🧪</div>
         <div class="module-card__body">
-          <h3 class="module-card__title">Chemistry &amp; Atoms</h3>
+          <h3 class="module-card__title" data-i18n="nav-chemistry">Chemistry &amp; Atoms</h3>
           <p class="module-card__desc">
             Periodic table data, atomic properties, crystal structures,
             molecular geometry, and interatomic bonding simulation.
@@ -108,7 +108,7 @@
       <a href="{% url 'physics:physics-index' %}" class="module-card module-card--physics" id="module-card-physics">
         <div class="module-card__icon" aria-hidden="true">⚡</div>
         <div class="module-card__body">
-          <h3 class="module-card__title">Physics</h3>
+          <h3 class="module-card__title" data-i18n="nav-physics">Physics</h3>
           <p class="module-card__desc">
             Classical mechanics, thermodynamics, electromagnetism,
             projectile motion, orbital mechanics, and wave optics.
@@ -125,7 +125,7 @@
       <a href="{% url 'tribology:tribology-index' %}" class="module-card module-card--tribology" id="module-card-tribology">
         <div class="module-card__icon" aria-hidden="true">⚙️</div>
         <div class="module-card__body">
-          <h3 class="module-card__title">Tribology &amp; Gears</h3>
+          <h3 class="module-card__title" data-i18n="nav-tribology">Tribology &amp; Gears</h3>
           <p class="module-card__desc">
             Gears sizing geometry, pitch line linear velocity, contact load, Dowson-Higginson
             elastohydrodynamic lubrication (EHL) oil film thickness and Lambda index.
@@ -399,4 +399,36 @@
     .dashboard-hero__stack { justify-content: center; }
   }
 </style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.TRANSLATIONS) {
+      Object.assign(window.TRANSLATIONS.pt, {
+        "home-hero-title": "Painel<br><span class=\"gradient-text\">Científico</span>",
+        "home-subtitle": "Motor de simulação profissional para Engenharia, Química, Dinâmica de Fluidos, Ciência de Materiais e Física. Alimentado pelo ecossistema científico do Python e visualizado com Plotly e Three.js.",
+        "home-section-title": "Módulos Científicos"
+      });
+
+      Object.assign(window.TRANSLATIONS.en, {
+        "home-hero-title": "Scientific<br><span class=\"gradient-text\">Dashboard</span>",
+        "home-subtitle": "Professional simulation engine for Engineering, Chemistry, Fluid Dynamics, Materials Science, and Physics. Powered by Python's scientific ecosystem and visualised with Plotly & Three.js.",
+        "home-section-title": "Scientific Modules"
+      });
+
+      Object.assign(window.TRANSLATIONS.ja, {
+        "home-hero-title": "サイエンス<br><span class=\"gradient-text\">キッズ研究室</span>",
+        "home-subtitle": "いろんなものの動き、水や空気のながれ、原子・分子のくみたて、ものの強さを３Dで動かしてみるバーチャルじっけんしつだよ！",
+        "home-section-title": "じっけんコーナー"
+      });
+
+      // Auto-apply current language
+      const currentLang = localStorage.getItem('app-language') || 'pt';
+      window.translatePage(currentLang);
+    }
+
+    window.addEventListener('language-changed', (e) => {
+      window.translatePage(e.detail);
+    });
+  });
+</script>
 {% endblock %}

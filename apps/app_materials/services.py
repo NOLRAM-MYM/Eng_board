@@ -29,8 +29,12 @@ class BeamDeflectionService:
     Governing equation: EI · d⁴w/dx⁴ = q(x)
     where E = Young's modulus, I = second moment of area, w = deflection.
 
-    This is a simplified analytical solution for uniform beams.
-    SfePy is used for complex geometries and loading conditions.
+    Supported ``load_type`` values (all simplified analytical solutions for
+    uniform beams; SfePy would be used for complex geometries/loading):
+        - 'point_centre':     simply-supported, point load at mid-span.
+        - 'uniform':           simply-supported, uniformly distributed load.
+        - 'cantilever_point':  fixed at x=0, point load at the free end (x=L).
+        - 'cantilever_uniform':fixed at x=0, uniformly distributed load.
     """
 
     def __init__(
@@ -39,7 +43,7 @@ class BeamDeflectionService:
         youngs_modulus_gpa: float,
         second_moment_m4: float,
         load_kn: float,
-        load_type: str = 'point_centre',  # or 'uniform'
+        load_type: str = 'point_centre',
     ):
         self.L  = length_m
         self.E  = youngs_modulus_gpa * 1e9   # GPa → Pa
@@ -67,16 +71,32 @@ class BeamDeflectionService:
                 self.P * x / (48 * EI) * (3 * self.L ** 2 - 4 * x ** 2),
                 self.P * (self.L - x) / (48 * EI) * (3 * self.L ** 2 - 4 * (self.L - x) ** 2),
             )
-        else:
+        elif self.load_type == 'uniform':
             # Uniform distributed load: δ_max = 5qL⁴/(384EI)
             q = self.P / self.L   # N/m
             delta_max = 5 * q * self.L ** 4 / (384 * EI)
             # w(x) = qx/(24EI) * (L³ - 2Lx² + x³)
             w = q * x / (24 * EI) * (self.L ** 3 - 2 * self.L * x ** 2 + x ** 3)
+        elif self.load_type == 'cantilever_point':
+            # Fixed at x=0, point load P at the free end (x=L).
+            # δ_max = PL³/(3EI) at the free end.
+            # w(x) = Px²(3L - x)/(6EI)
+            delta_max = self.P * self.L ** 3 / (3 * EI)
+            w = self.P * x ** 2 * (3 * self.L - x) / (6 * EI)
+        elif self.load_type == 'cantilever_uniform':
+            # Fixed at x=0, uniformly distributed load q over the span.
+            # δ_max = qL⁴/(8EI) at the free end.
+            # w(x) = qx²(x² - 4Lx + 6L²)/(24EI)
+            q = self.P / self.L   # N/m
+            delta_max = q * self.L ** 4 / (8 * EI)
+            w = q * x ** 2 * (x ** 2 - 4 * self.L * x + 6 * self.L ** 2) / (24 * EI)
+        else:
+            raise ValueError(f"Unsupported load_type: {self.load_type!r}")
 
         return {
             'x_positions_m': x.tolist(),
             'deflection_m': w.tolist(),
             'max_deflection_mm': float(delta_max * 1000),
             'EI_nm2': float(EI),
+            'load_type': self.load_type,
         }

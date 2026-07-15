@@ -111,3 +111,97 @@ class TestProjectileMotionAPI:
         assert response.status_code == 400
         assert response.data['status'] == 'error'
         assert 'mass_kg' in response.data['errors']
+
+
+# ===========================================================================
+# Magnetism and Motors Service & API Tests
+# ===========================================================================
+
+class TestMagnetismService:
+    def test_compute_lorentz_charge(self):
+        """Verify Lorentz trajectory calculations for positive/negative charge."""
+        from .services import MagnetismService
+        res_pos = MagnetismService.compute_lorentz(q_uc=10.0, m_mg=1.0, v0=[10.0, 10.0, 0.0], B=[0.0, 0.0, 1.0])
+        res_neg = MagnetismService.compute_lorentz(q_uc=-10.0, m_mg=1.0, v0=[10.0, 10.0, 0.0], B=[0.0, 0.0, 1.0])
+
+        assert len(res_pos['x']) > 0
+        assert res_pos['stats']['larmor_radius_m'] > 0
+        assert res_pos['stats']['cyclotron_frequency_hz'] > 0
+        # Opposite charges must produce opposite force components
+        assert res_pos['Fx'][0] == -res_neg['Fx'][0]
+        assert res_pos['Fy'][0] == -res_neg['Fy'][0]
+
+    def test_compute_poles_force(self):
+        """Verify Coulomb magnetism poles force decays with 1/r^2."""
+        from .services import MagnetismService
+        res_close = MagnetismService.compute_poles(qm1=100.0, qm2=-100.0, r=0.1)
+        res_far = MagnetismService.compute_poles(qm1=100.0, qm2=-100.0, r=0.2)
+
+        # Force magnitude at 0.1m must be 4x higher than at 0.2m (quadratic decay)
+        assert abs(res_close['stats']['force_n']) > abs(res_far['stats']['force_n'])
+        assert pytest.approx(abs(res_close['stats']['force_n']), rel=1e-3) == 4.0 * abs(res_far['stats']['force_n'])
+        assert res_close['stats']['type'] == 'Attraction'
+
+        res_repulsive = MagnetismService.compute_poles(qm1=100.0, qm2=100.0, r=0.1)
+        assert res_repulsive['stats']['type'] == 'Repulsion'
+
+    def test_compute_motor_dynamics(self):
+        """Verify DC Motor transient response simulation converges."""
+        from .services import MagnetismService
+        res = MagnetismService.compute_motor(
+            V=24.0, R=2.0, L=0.05, J=0.02, b=0.005, Kt=0.5, Ke=0.5, tl=0.5
+        )
+
+        assert len(res['t']) > 0
+        assert res['stats']['steady_state_speed_rpm'] > 0
+        assert res['stats']['starting_current_a'] > 0
+        assert res['stats']['max_efficiency_pct'] > 0
+        assert res['stats']['settling_time_s'] < 1.5
+
+
+class TestMagnetismAPI:
+    def test_page_view_status_code(self, api_client):
+        """Verify that the Magnetism & Motors dashboard template renders successfully."""
+        url = reverse('physics:magnetism-index')
+        response = api_client.get(url)
+        assert response.status_code == 200
+
+    def test_calculate_lorentz_api_success(self, api_client):
+        """Verify Lorentz API succeeds with correct payload."""
+        url = reverse('physics:magnetism-calculate')
+        payload = {
+            "mode": "lorentz",
+            "q_uc": 10.0,
+            "m_mg": 1.0,
+            "vx": 10.0,
+            "vy": 10.0,
+            "vz": 0.0,
+            "Bx": 0.0,
+            "By": 0.0,
+            "Bz": 1.0
+        }
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == 200
+        assert response.data['status'] == 'success'
+        assert 'x' in response.data['data']
+        assert 'stats' in response.data['data']
+
+    def test_calculate_motor_api_validation_error(self, api_client):
+        """Verify API rejects invalid negative parameter inputs for DC motor."""
+        url = reverse('physics:magnetism-calculate')
+        payload = {
+            "mode": "motor",
+            "V": 24.0,
+            "R": -1.0,  # Invalid negative resistance
+            "L": 0.05,
+            "J": 0.02,
+            "b": 0.005,
+            "Kt": 0.5,
+            "Ke": 0.5,
+            "tl": 0.5
+        }
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == 400
+        assert response.data['status'] == 'error'
+        assert 'R' in response.data['errors']
+

@@ -450,7 +450,7 @@ class PipeFlowService:
             re = self._reynolds_number(v)
             eD = self.inp.roughness_m / self.inp.diameter_m
 
-            if re < 2300:
+            if re < self.RE_LAMINAR_LIMIT:
                 ff = 64.0 / max(re, 1e-9)
             else:
                 ff = float(fluids.friction.friction_factor(Re=re, eD=eD))

@@ -27,6 +27,8 @@ class TribologyService:
         youngs_modulus_gpa: float = 210.0,
         poissons_ratio: float = 0.3,
         alpha_pa_inv: float = 2.2e-8,
+        gear_youngs_modulus_gpa: float | None = None,
+        gear_poissons_ratio: float | None = None,
     ):
         self.m = module_mm
         self.z1 = pinion_teeth
@@ -38,8 +40,14 @@ class TribologyService:
         self.phi_deg = pressure_angle_deg
         self.phi_rad = math.radians(pressure_angle_deg)
         self.b = face_width_mm / 1000.0  # mm to meters
-        self.E = youngs_modulus_gpa * 1e9  # GPa to Pa
-        self.nu = poissons_ratio
+        # Pinion material (also the default gear material, for backward
+        # compatibility with single-material callers/tests).
+        self.E1 = youngs_modulus_gpa * 1e9  # GPa to Pa
+        self.nu1 = poissons_ratio
+        # Gear material — defaults to the pinion's, but can differ (e.g. a
+        # steel pinion driving a bronze gear, common in worm/spur pairs).
+        self.E2 = (gear_youngs_modulus_gpa * 1e9) if gear_youngs_modulus_gpa is not None else self.E1
+        self.nu2 = gear_poissons_ratio if gear_poissons_ratio is not None else self.nu1
         self.alpha = alpha_pa_inv
 
     def compute_geometry(self):
@@ -75,7 +83,7 @@ class TribologyService:
 
         # Reduced Elastic Modulus E'
         # 2 / E' = (1 - nu1^2)/E1 + (1 - nu2^2)/E2
-        e_reduced = 2.0 / (((1.0 - self.nu**2) / self.E) + ((1.0 - self.nu**2) / self.E))
+        e_reduced = 2.0 / (((1.0 - self.nu1**2) / self.E1) + ((1.0 - self.nu2**2) / self.E2))
 
         # Linear speed at pitch circle (m/s)
         omega1 = (2.0 * math.pi * rpm) / 60.0

@@ -35,49 +35,49 @@
     </div>
 
     <nav class="sidebar__nav">
-      <div class="sidebar__section-label">Modules</div>
+      <div class="sidebar__section-label" data-i18n="nav-modules">Módulos</div>
       <ul class="sidebar__list" role="list">
         <li>
           <a href="{% url 'dashboard-index' %}" class="sidebar__link {% block nav_home %}{% endblock %}" id="nav-home">
             <span class="sidebar__icon" aria-hidden="true">🏠</span>
-            <span>Dashboard</span>
+            <span data-i18n="nav-home">Página Inicial</span>
           </a>
         </li>
         <li>
           <a href="{% url 'fluids:pipe-flow-page' %}" class="sidebar__link {% block nav_fluids %}{% endblock %}" id="nav-fluids">
             <span class="sidebar__icon" aria-hidden="true">💧</span>
-            <span>Fluid Mechanics</span>
+            <span data-i18n="nav-fluids">Mecânica de Fluidos</span>
           </a>
         </li>
         <li>
           <a href="{% url 'materials:materials-index' %}" class="sidebar__link {% block nav_materials %}{% endblock %}" id="nav-materials">
             <span class="sidebar__icon" aria-hidden="true">🔩</span>
-            <span>Materials & FEA</span>
+            <span data-i18n="nav-materials">Resistência de Materiais</span>
           </a>
         </li>
         <li>
           <a href="{% url 'chemistry:chemistry-index' %}" class="sidebar__link {% block nav_chemistry %}{% endblock %}" id="nav-chemistry">
             <span class="sidebar__icon" aria-hidden="true">🧪</span>
-            <span>Chemistry & Atoms</span>
+            <span data-i18n="nav-chemistry">Química &amp; Bohr</span>
           </a>
         </li>
         <li>
           <a href="{% url 'physics:physics-index' %}" class="sidebar__link {% block nav_physics %}{% endblock %}" id="nav-physics">
             <span class="sidebar__icon" aria-hidden="true">⚡</span>
-            <span>Physics</span>
+            <span data-i18n="nav-physics">Lançamento de Projéteis</span>
           </a>
         </li>
         <li>
           <a href="{% url 'tribology:tribology-index' %}" class="sidebar__link {% block nav_tribology %}{% endblock %}" id="nav-tribology">
             <span class="sidebar__icon" aria-hidden="true">⚙️</span>
-            <span>Tribology &amp; Gears</span>
+            <span data-i18n="nav-tribology">Lubrificação &amp; Engrenagens</span>
           </a>
         </li>
       </ul>
     </nav>
 
     <div class="sidebar__footer">
-      <span class="sidebar__version">v1.0.0</span>
+      <span class="sidebar__version" data-i18n="nav-version">v1.0.0</span>
     </div>
   </aside>
 
@@ -92,10 +92,19 @@
       <div class="topbar__breadcrumb" id="breadcrumb" aria-label="breadcrumb">
         {% block breadcrumb %}Home{% endblock %}
       </div>
-      <div class="topbar__actions">
+      <div class="topbar__actions" style="display:flex; align-items:center; gap:16px;">
+        <!-- Language Selector -->
+        <div class="topbar__lang-selector" style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:0.75rem; opacity:0.7;">🌐</span>
+          <select id="lang-select" style="padding:4px 8px; font-size:0.75rem; background:rgba(22, 32, 64, 0.8); border:1px solid rgba(139,92,246,0.2); border-radius:4px; color:var(--text-secondary); cursor:pointer; outline:none; transition: border-color var(--transition-fast);">
+            <option value="pt">Português (BR)</option>
+            <option value="en">English</option>
+            <option value="ja">日本語 (キッズ)</option>
+          </select>
+        </div>
         <div class="topbar__status" id="api-status" title="API Status">
           <span class="status-dot status-dot--online" aria-hidden="true"></span>
-          <span>Online</span>
+          <span data-i18n="status-online">Online</span>
         </div>
       </div>
     </header>
@@ -115,6 +124,12 @@
     <div class="loading-spinner"></div>
     <p class="loading-text" id="loading-text">Computing…</p>
   </div>
+
+  <!-- ===== Floating Panel Backdrop (shared by all simulator pages) ===== -->
+  <div class="fp-backdrop" id="fp-backdrop" hidden></div>
+
+  <!-- ===== Three.js hover tooltip (shared by pages with hoverable 3D objects) ===== -->
+  <div class="three-tooltip" id="three-tooltip" hidden></div>
 
   {% block extra_scripts %}{% endblock %}
 
@@ -299,6 +314,15 @@
       display: flex;
       flex-direction: column;
       min-height: 100vh;
+      transition: margin-left var(--transition-med);
+    }
+
+    /* Collapsed sidebar overrides */
+    body.sidebar-collapsed .sidebar {
+      transform: translateX(-100%);
+    }
+    body.sidebar-collapsed .main-content {
+      margin-left: 0;
     }
 
     /* ---- Top Bar ---- */
@@ -318,13 +342,18 @@
     }
 
     .topbar__menu-btn {
-      display: none;
+      display: flex; /* Always visible */
       flex-direction: column;
       gap: 4px;
       background: none;
       border: none;
       cursor: pointer;
       padding: 6px;
+      transition: transform var(--transition-fast), filter var(--transition-fast);
+    }
+    .topbar__menu-btn:hover {
+      transform: scale(1.1);
+      filter: drop-shadow(0 0 8px var(--accent-primary));
     }
     .topbar__menu-btn span {
       display: block;
@@ -377,10 +406,11 @@
     /* ---- Unified Responsive Layout ---- */
     .dashboard-layout {
       display: grid;
-      grid-template-columns: 310px 1fr 370px;
+      grid-template-columns: minmax(290px, 320px) 1fr minmax(320px, 380px);
       gap: 28px;
       align-items: start;
       width: 100%;
+      transition: all var(--transition-med);
     }
     .dashboard-layout__left {
       display: flex;
@@ -399,22 +429,10 @@
       gap: 24px;
     }
 
-    @media (max-width: 1500px) {
-      .dashboard-layout {
-        grid-template-columns: 280px 1fr 330px;
-        gap: 20px;
-      }
-    }
-    @media (max-width: 1200px) {
-      .dashboard-layout {
-        grid-template-columns: 260px 1fr 300px;
-        gap: 16px;
-      }
-    }
-    @media (max-width: 1024px) {
-      /* Keep elements side-by-side where possible, but if tablet, stack right sidebar underneath */
+    @media (max-width: 1400px) {
       .dashboard-layout {
         grid-template-columns: 280px 1fr;
+        gap: 20px;
       }
       .dashboard-layout__right {
         grid-column: 1 / -1;
@@ -424,13 +442,266 @@
         width: 100% !important;
       }
     }
-    @media (max-width: 768px) {
+    @media (max-width: 900px) {
       .dashboard-layout {
         grid-template-columns: 1fr;
+        gap: 16px;
       }
       .dashboard-layout__right {
         grid-template-columns: 1fr;
+        gap: 16px;
       }
+    }
+
+    /* ---- Global Simulator Canvas overrides ----
+       Fullscreen-friendly default: the canvas fills the width of the
+       (no longer 3-column) simulator layout and takes most of the
+       viewport height, instead of a fixed 460px carried over from the
+       old 3-column layout. */
+    #three-canvas {
+      width: 100%;
+      height: 78vh;
+      min-height: 480px;
+      display: block;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.04);
+      transition: box-shadow var(--transition-med), border-color var(--transition-med);
+    }
+    #three-canvas:hover {
+      box-shadow: 0 0 25px rgba(139, 92, 246, 0.15);
+      border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    /* ---- Simulator fullscreen canvas wrapper + camera overlay ----
+       Wraps #three-canvas (and any secondary canvas, e.g. magnetism's
+       2D motor view) so .camera-controls--overlay can be anchored to a
+       corner of the visualization instead of living in a side column. */
+    .sim-canvas-wrap {
+      position: relative;
+      width: 100%;
+    }
+    .camera-controls--overlay {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      z-index: 20;
+      width: 260px;
+      max-width: calc(100% - 32px);
+      max-height: calc(100% - 32px);
+      overflow-y: auto;
+      margin-top: 0;
+    }
+
+    /* Hover tooltip for labeled 3D objects (molecule atoms, gear teeth,
+       etc.) — positioned via JS to follow the cursor, shared across pages. */
+    .three-tooltip {
+      position: fixed;
+      z-index: 800;
+      pointer-events: none;
+      background: rgba(10, 15, 30, 0.95);
+      border: 1px solid var(--border-accent);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      color: var(--text-primary);
+      box-shadow: var(--glow-panel);
+      max-width: 240px;
+      transition: opacity 0.1s ease;
+    }
+    .three-tooltip strong { color: var(--accent-primary); }
+
+    @media (max-width: 640px) {
+      .camera-controls--overlay { width: calc(100% - 32px); }
+    }
+
+    /* ---- Floating Panels (Config / Results drawers) ----
+       Shared by every simulator page: the config/results panels that
+       used to be permanent side columns now slide in on demand, keeping
+       the simulation itself full-width by default. */
+    .fab {
+      position: fixed;
+      bottom: 28px;
+      z-index: 700;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-accent);
+      box-shadow: var(--glow-violet);
+      font-size: 1.4rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    .fab:hover { transform: scale(1.08); }
+    .fab--config  { left: 28px; }
+    .fab--results { right: 28px; }
+    .fab--table {
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .fab--table:hover { transform: translateX(-50%) scale(1.08); }
+    .fab[aria-expanded="true"] {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
+    }
+
+    /* "New result ready" indicator — dot pulses on the results FAB while
+       the panel is closed, so a background recalculation doesn't go
+       unnoticed. Cleared automatically when the panel is opened. */
+    .fab--has-update::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent-success, #10b981);
+      border: 2px solid var(--bg-elevated);
+      animation: fab-pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes fab-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.25); opacity: 0.7; }
+    }
+
+    .fp-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 6, 15, 0.45);
+      backdrop-filter: blur(2px);
+      z-index: 590;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition-med);
+    }
+    .fp-backdrop.is-visible { opacity: 1; pointer-events: auto; }
+
+    .floating-panel {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      width: min(380px, 92vw);
+      z-index: 600;
+      background: rgba(10, 15, 30, 0.96);
+      backdrop-filter: blur(16px);
+      box-shadow: var(--glow-panel);
+      display: flex;
+      flex-direction: column;
+      visibility: hidden;
+      transition: transform var(--transition-med), visibility 0s var(--transition-med);
+    }
+    .floating-panel--left  { left: 0; border-right: 1px solid var(--border-default); transform: translateX(-100%); }
+    .floating-panel--right { right: 0; border-left: 1px solid var(--border-default); transform: translateX(100%); }
+    .floating-panel.is-open {
+      transform: translateX(0);
+      visibility: visible;
+      transition: transform var(--transition-med);
+    }
+
+    /* Wide variant: a centered, modal-like panel for content that needs
+       real room (e.g. the full periodic table) instead of the narrow
+       380px side drawer. Overrides the left/right slide-in with a
+       centered fade+scale. */
+    .floating-panel.floating-panel--wide {
+      left: 50%;
+      right: auto;
+      top: 5vh;
+      bottom: 5vh;
+      width: min(1100px, 92vw);
+      border-radius: 16px;
+      border: 1px solid var(--border-default);
+      opacity: 0;
+      transform: translate(-50%, 0) scale(0.96);
+      transition: transform var(--transition-med), opacity var(--transition-med), visibility 0s var(--transition-med);
+    }
+    .floating-panel.floating-panel--wide.is-open {
+      opacity: 1;
+      transform: translate(-50%, 0) scale(1);
+      transition: transform var(--transition-med), opacity var(--transition-med);
+    }
+    @media (max-width: 900px) {
+      .floating-panel--wide { top: 2vh; bottom: 2vh; width: 96vw; }
+    }
+    .floating-panel__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+    }
+    .floating-panel__title { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); }
+    .floating-panel__body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .floating-panel__actions { display: flex; align-items: center; gap: 4px; }
+    .floating-panel__close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 6px;
+      line-height: 1;
+      transition: color var(--transition-fast);
+    }
+    .floating-panel__close:hover { color: var(--text-primary); }
+    .floating-panel__export,
+    .floating-panel__pin {
+      background: none;
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 5px 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: color var(--transition-fast), border-color var(--transition-fast);
+    }
+    .floating-panel__export:hover,
+    .floating-panel__pin:hover { color: var(--text-primary); border-color: var(--accent-primary); }
+    .floating-panel__pin[aria-pressed="true"] {
+      color: var(--accent-primary);
+      border-color: var(--accent-primary);
+      background: rgba(139, 92, 246, 0.12);
+    }
+    .floating-panel__pin { display: none; }
+
+    /* Pinned/docked panel: still the same fixed overlay box, but it no
+       longer dims the page (no backdrop) and pushes the simulation content
+       aside instead of floating over it — only enabled on wide viewports,
+       where there's room for the simulation to shrink without feeling
+       cramped. .sim-fullscreen is defined per-page but always present on
+       simulator pages, so the margin rule here applies globally. */
+    @media (min-width: 1600px) {
+      .floating-panel__pin { display: flex; }
+      .floating-panel.is-pinned { box-shadow: none; border-color: var(--border-subtle); }
+      .sim-fullscreen { transition: margin var(--transition-med); }
+      body.panel-pinned-config .sim-fullscreen { margin-left: 380px; }
+      body.panel-pinned-results .sim-fullscreen { margin-right: 380px; }
+    }
+
+    @media (max-width: 640px) {
+      .floating-panel { width: 100vw; }
+      .fab { width: 48px; height: 48px; font-size: 1.2rem; bottom: 20px; }
+      .fab--config  { left: 16px; }
+      .fab--results { right: 16px; }
     }
 
     /* ---- Cards & High Tech Panels ---- */
@@ -939,20 +1210,298 @@
         box-shadow: 6px 0 30px rgba(0,0,0,0.6);
       }
       .main-content { margin-left: 0; }
-      .topbar__menu-btn { display: flex; }
       .page-content { padding: 20px; }
     }
   </style>
 
   <script>
-    // ---- Sidebar toggle (mobile) ----
+    // ---- Sidebar toggle (desktop & mobile) ----
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebar = document.getElementById('sidebar');
+    const body = document.body;
+
+    if (localStorage.getItem('sidebar-collapsed') === 'true' && window.innerWidth > 1024) {
+      body.classList.add('sidebar-collapsed');
+    }
+
     if (sidebarToggle && sidebar) {
       sidebarToggle.addEventListener('click', () => {
-        sidebar.classList.toggle('is-open');
+        if (window.innerWidth <= 1024) {
+          sidebar.classList.toggle('is-open');
+        } else {
+          body.classList.toggle('sidebar-collapsed');
+          localStorage.setItem('sidebar-collapsed', body.classList.contains('sidebar-collapsed'));
+        }
+        
+        // Let layouts transition, then trigger resize updates for Plotly/ThreeJS
+        setTimeout(() => {
+          window.dispatchEvent(new Event('resize'));
+        }, 250);
       });
     }
+
+    // ---- Floating Panel (config/results drawers on simulator pages) ----
+    window.FloatingPanel = (() => {
+      let openPanelId = null;
+      let lastFocusedEl = null;
+
+      const getEls = (id) => ({
+        panel: document.getElementById(`${id}-panel`),
+        fab: document.querySelector(`.fab[data-panel="${id}"]`),
+      });
+
+      function onKeydown(e) {
+        if (e.key === 'Escape') { close(openPanelId); return; }
+        if (e.key === 'Tab' && openPanelId) trapFocus(e);
+      }
+
+      // Global shortcuts (C/R open the config/results panel) — active even
+      // when no panel is open yet, but ignored while typing in a field.
+      function onGlobalKeydown(e) {
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        const key = e.key.toLowerCase();
+        if (key === 'c' && getEls('config').panel) { toggle('config'); }
+        else if (key === 'r' && getEls('results').panel) { toggle('results'); }
+      }
+
+      function trapFocus(e) {
+        const { panel } = getEls(openPanelId);
+        if (!panel) return;
+        const focusables = panel.querySelectorAll('button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])');
+        if (!focusables.length) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+
+      function scheduleResize() {
+        // Same pattern as the sidebar toggle: let the slide/margin
+        // transition finish, then force Three.js/Plotly to recompute size.
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 260);
+      }
+
+      function open(id) {
+        const { panel, fab } = getEls(id);
+        if (!panel) return;
+
+        // Only the non-pinned "floating" panel participates in the
+        // one-at-a-time/backdrop/focus-trap behavior — a pinned (docked)
+        // panel on the other side is left alone.
+        if (openPanelId && openPanelId !== id) {
+          const other = getEls(openPanelId).panel;
+          if (!other?.classList.contains('is-pinned')) close(openPanelId);
+        }
+
+        lastFocusedEl = document.activeElement;
+        panel.classList.add('is-open');
+        panel.setAttribute('aria-hidden', 'false');
+        fab?.setAttribute('aria-expanded', 'true');
+        fab?.classList.remove('fab--has-update');
+
+        if (!panel.classList.contains('is-pinned')) {
+          const backdrop = document.getElementById('fp-backdrop');
+          backdrop.hidden = false;
+          requestAnimationFrame(() => backdrop.classList.add('is-visible'));
+          openPanelId = id;
+          document.addEventListener('keydown', onKeydown);
+        }
+
+        panel.querySelector('button, input, select, textarea, [tabindex]')?.focus();
+      }
+
+      function close(id) {
+        const targetId = id || openPanelId;
+        if (!targetId) return;
+        const { panel, fab } = getEls(targetId);
+        if (panel?.classList.contains('is-pinned')) unpin(targetId);
+
+        panel?.classList.remove('is-open');
+        panel?.setAttribute('aria-hidden', 'true');
+        fab?.setAttribute('aria-expanded', 'false');
+
+        const backdrop = document.getElementById('fp-backdrop');
+        backdrop.classList.remove('is-visible');
+        setTimeout(() => { if (!openPanelId) backdrop.hidden = true; }, 250);
+
+        if (openPanelId === targetId) openPanelId = null;
+        document.removeEventListener('keydown', onKeydown);
+        lastFocusedEl?.focus();
+        scheduleResize();
+      }
+
+      function toggle(id) {
+        const { panel } = getEls(id);
+        if (panel?.classList.contains('is-open')) close(id); else open(id);
+      }
+
+      // ---- Pin / dock mode (wide screens only, see @media(min-width:1600px)) ----
+      const pinKey = (id) => `panel-pinned-${id}:${location.pathname}`;
+
+      function pin(id) {
+        const { panel } = getEls(id);
+        if (!panel) return;
+        if (!panel.classList.contains('is-open')) open(id);
+        panel.classList.add('is-pinned');
+        document.body.classList.add(`panel-pinned-${id}`);
+        document.querySelector(`.floating-panel__pin#pin-${id}`)?.setAttribute('aria-pressed', 'true');
+        localStorage.setItem(pinKey(id), 'true');
+
+        // Docked panels don't dim the rest of the page, and don't own the
+        // Esc/focus-trap/backdrop behavior of the single "floating" panel.
+        const backdrop = document.getElementById('fp-backdrop');
+        backdrop.classList.remove('is-visible');
+        backdrop.hidden = true;
+        if (openPanelId === id) {
+          openPanelId = null;
+          document.removeEventListener('keydown', onKeydown);
+        }
+        scheduleResize();
+      }
+
+      function unpin(id) {
+        const { panel } = getEls(id);
+        if (!panel) return;
+        panel.classList.remove('is-pinned');
+        document.body.classList.remove(`panel-pinned-${id}`);
+        document.querySelector(`.floating-panel__pin#pin-${id}`)?.setAttribute('aria-pressed', 'false');
+        localStorage.removeItem(pinKey(id));
+
+        // Revert to a normal floating panel (still open, but now with
+        // backdrop/Esc/focus-trap like any other floating panel).
+        if (panel.classList.contains('is-open')) {
+          const backdrop = document.getElementById('fp-backdrop');
+          backdrop.hidden = false;
+          requestAnimationFrame(() => backdrop.classList.add('is-visible'));
+          openPanelId = id;
+          document.addEventListener('keydown', onKeydown);
+        }
+        scheduleResize();
+      }
+
+      // Flags the panel's FAB with a pulsing dot — used to signal a fresh
+      // result is available when the user hasn't opened the panel to see it.
+      function markUpdated(id) {
+        const { panel, fab } = getEls(id);
+        if (!fab || panel?.classList.contains('is-open')) return;
+        fab.classList.add('fab--has-update');
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.fab[data-panel]').forEach(fab => {
+          fab.addEventListener('click', () => toggle(fab.dataset.panel));
+        });
+        document.querySelectorAll('.floating-panel__close').forEach(btn => {
+          // Target this button's own panel explicitly — openPanelId alone
+          // isn't enough once a panel can be pinned (pinned panels clear it).
+          const ownerId = btn.closest('.floating-panel')?.id?.replace('-panel', '');
+          btn.addEventListener('click', () => close(ownerId || openPanelId));
+        });
+        document.querySelectorAll('.floating-panel__pin').forEach(btn => {
+          const ownerId = btn.closest('.floating-panel')?.id?.replace('-panel', '');
+          if (!ownerId) return;
+          btn.addEventListener('click', () => {
+            const { panel } = getEls(ownerId);
+            if (panel?.classList.contains('is-pinned')) unpin(ownerId); else pin(ownerId);
+          });
+          // Restore persisted pin state, but only on wide viewports (matches
+          // the CSS breakpoint that shows the pin button / applies margin).
+          if (window.innerWidth >= 1600 && localStorage.getItem(pinKey(ownerId)) === 'true') {
+            pin(ownerId);
+          }
+        });
+        document.getElementById('fp-backdrop')?.addEventListener('click', () => close(openPanelId));
+        document.addEventListener('keydown', onGlobalKeydown);
+
+        // Generic "Export" button: every simulator page renders its results
+        // as a #results-table of label/value rows, so this works with zero
+        // per-page JS — reads whatever is currently on screen.
+        document.getElementById('export-results')?.addEventListener('click', () => {
+          const table = document.getElementById('results-table');
+          const rows = table ? Array.from(table.querySelectorAll('tbody tr')).map(tr => {
+            const cells = tr.querySelectorAll('td');
+            return { label: cells[0]?.textContent.trim() || '', value: cells[1]?.textContent.trim() || '' };
+          }) : [];
+          if (!rows.length) { window.showToast?.('Nothing to export yet — run a simulation first.', 'error'); return; }
+
+          const slug = (document.title || 'results').toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '') || 'results';
+          const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+          const filename = `${slug}-${timestamp}`;
+
+          const jsonObj = {};
+          rows.forEach(r => { jsonObj[r.label] = r.value; });
+          window.exportUtils.downloadJSON(jsonObj, filename);
+          window.exportUtils.downloadCSV(rows, filename);
+          window.showToast?.('Results exported (JSON + CSV).', 'success', 2500);
+        });
+      });
+
+      return { open, close, toggle, markUpdated, pin, unpin };
+    })();
+
+    // ---- Three.js hover tooltip (shared by pages with hoverable 3D objects) ----
+    window.ThreeTooltip = (() => {
+      const el = document.getElementById('three-tooltip');
+      function show(html, clientX, clientY) {
+        if (!el) return;
+        el.innerHTML = html;
+        el.hidden = false;
+        // Offset from the cursor, clamped so it never runs off-screen.
+        const x = Math.min(clientX + 16, window.innerWidth - el.offsetWidth - 12);
+        const y = Math.min(clientY + 16, window.innerHeight - el.offsetHeight - 12);
+        el.style.left = `${Math.max(8, x)}px`;
+        el.style.top = `${Math.max(8, y)}px`;
+      }
+      function hide() {
+        if (el) el.hidden = true;
+      }
+      return { show, hide };
+    })();
+
+    // ---- Export utilities (results panel "Export" button on simulator pages) ----
+    window.exportUtils = (() => {
+      function triggerDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function downloadJSON(data, filename) {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        triggerDownload(blob, filename.endsWith('.json') ? filename : `${filename}.json`);
+      }
+
+      // rows: array of plain objects (all rows should share the same keys).
+      function downloadCSV(rows, filename) {
+        if (!rows || !rows.length) return;
+        const headers = Object.keys(rows[0]);
+        const escapeCell = (v) => {
+          const s = v === null || v === undefined ? '' : String(v);
+          return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        };
+        const lines = [
+          headers.join(','),
+          ...rows.map(row => headers.map(h => escapeCell(row[h])).join(',')),
+        ];
+        const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+        triggerDownload(blob, filename.endsWith('.csv') ? filename : `${filename}.csv`);
+      }
+
+      return { downloadJSON, downloadCSV };
+    })();
 
     // ---- Global toast utility ----
     window.showToast = function(message, type = 'info', duration = 4000) {
@@ -980,6 +1529,126 @@
       overlay.hidden = true;
       overlay.setAttribute('aria-hidden', 'true');
     };
+
+    // ================================================================
+    // CLIENT-SIDE TRANSLATION ENGINE (PT-BR, EN, JA KIDS)
+    // ================================================================
+    window.TRANSLATIONS = {
+      pt: {
+        "nav-modules": "Módulos",
+        "nav-home": "Página Inicial",
+        "nav-fluids": "Mecânica de Fluidos",
+        "nav-materials": "Resistência de Materiais",
+        "nav-chemistry": "Química & Bohr",
+        "nav-physics": "Lançamento de Projéteis",
+        "nav-tribology": "Lubrificação & Engrenagens",
+        "nav-version": "Versão Científica v2.4.0",
+        "status-online": "Online",
+        "home-welcome": "Bem-vindo ao Painel Científico",
+        "home-subtitle": "Simulações interativas de engenharia, física e química computacional.",
+        "home-kpi1": "Total de Simulações",
+        "home-kpi2": "Estabilidade do Solver",
+        "home-kpi3": "Desempenho 3D (WebGL)",
+        // Camera Global
+        "cam-title": "🎥 Controle de Visualização 3D",
+        "cam-lbl-orbit": "Auto-Orbital",
+        "cam-btn-iso": "Perspectiva",
+        "cam-btn-side": "Lateral",
+        "cam-btn-top": "Superior",
+        "cam-btn-inlet": "Frontal",
+        "cam-title-axes": "Ajuste Fino de Eixos",
+        "cam-pos-x": "Posição X",
+        "cam-pos-y": "Posição Y",
+        "cam-pos-z": "Posição Z"
+      },
+      en: {
+        "nav-modules": "Modules",
+        "nav-home": "Home Dashboard",
+        "nav-fluids": "Fluid Mechanics",
+        "nav-materials": "Materials Strength",
+        "nav-chemistry": "Chemistry & Bohr Orbits",
+        "nav-physics": "Projectile Motion",
+        "nav-tribology": "Lubrication & Gears",
+        "nav-version": "Scientific Version v2.4.0",
+        "status-online": "Online",
+        "home-welcome": "Welcome to the Scientific Dashboard",
+        "home-subtitle": "Interactive computational physics, chemistry, and engineering solvers.",
+        "home-kpi1": "Total Simulations",
+        "home-kpi2": "Solver Stability",
+        "home-kpi3": "3D Performance (WebGL)",
+        // Camera Global
+        "cam-title": "🎥 3D View Controls",
+        "cam-lbl-orbit": "Auto-Orbit",
+        "cam-btn-iso": "Perspective",
+        "cam-btn-side": "Side View",
+        "cam-btn-top": "Top View",
+        "cam-btn-inlet": "Front View",
+        "cam-title-axes": "Fine-tune Axes",
+        "cam-pos-x": "X Position",
+        "cam-pos-y": "Y Position",
+        "cam-pos-z": "Z Position"
+      },
+      ja: {
+        "nav-modules": "じっけんコーナー",
+        "nav-home": "としょかん (ホーム)",
+        "nav-fluids": "水とながれのじっけん",
+        "nav-materials": "もののつよさと曲がり",
+        "nav-chemistry": "げんしとかがくのへや",
+        "nav-physics": "たいほうのとび方",
+        "nav-tribology": "はぐるまとあぶらのひみつ",
+        "nav-version": "キッズ研究室バージョン 2.4.0",
+        "status-online": "じっけん中",
+        "home-welcome": "科学のじっけんしつへようこそ！",
+        "home-subtitle": "３Dモデルをうごかして、物理・化学・工学のふしぎを体験しよう！",
+        "home-kpi1": "じっけんした回数",
+        "home-kpi2": "けいさんのせいかくさ",
+        "home-kpi3": "３Dのがめんのうごき",
+        // Camera Global
+        "cam-title": "🎥 ３Dカメラのむき",
+        "cam-lbl-orbit": "じどうで回す",
+        "cam-btn-iso": "ななめから",
+        "cam-btn-side": "よこから",
+        "cam-btn-top": "うえから",
+        "cam-btn-inlet": "まえから",
+        "cam-title-axes": "カメラの位置のちょうせい",
+        "cam-pos-x": "左右 (X)",
+        "cam-pos-y": "上下 (Y)",
+        "cam-pos-z": "前後 (Z)"
+      }
+    };
+
+    window.translatePage = function(lang) {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (window.TRANSLATIONS[lang] && window.TRANSLATIONS[lang][key]) {
+          el.innerHTML = window.TRANSLATIONS[lang][key];
+        }
+      });
+
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (window.TRANSLATIONS[lang] && window.TRANSLATIONS[lang][key]) {
+          el.placeholder = window.TRANSLATIONS[lang][key];
+        }
+      });
+
+      const selector = document.getElementById('lang-select');
+      if (selector) selector.value = lang;
+    };
+
+    const langSelect = document.getElementById('lang-select');
+    if (langSelect) {
+      langSelect.addEventListener('change', (e) => {
+        const selectedLang = e.target.value;
+        localStorage.setItem('app-language', selectedLang);
+        window.translatePage(selectedLang);
+        window.dispatchEvent(new CustomEvent('language-changed', { detail: selectedLang }));
+      });
+    }
+
+    // Initialize default language
+    const currentLang = localStorage.getItem('app-language') || 'pt';
+    window.translatePage(currentLang);
   </script>
 </body>
 </html>
